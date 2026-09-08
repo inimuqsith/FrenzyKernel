@@ -54,9 +54,11 @@ choice
 config CPU_FREQ_DEFAULT_GOV_REFLEX
 	bool "reflex"
 	select CPU_FREQ_GOV_REFLEX
+	select CPU_FREQ_GOV_SCHEDUTIL
 	select CPU_FREQ_GOV_PERFORMANCE
 	help
 	  Use the 'reflex' CPUFreq governor by default.
+
 
 config CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 	bool "performance"
