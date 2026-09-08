@@ -136,7 +136,8 @@ KCOV_INSTRUMENT_stackleak.o := n
 
 obj-$(CONFIG_SCF_TORTURE_TEST) += scftorture.o
 
-$(obj)/configs.o: $(obj)/config_data.gz
+CFLAGS_configs.o += -D__FORCE_REBUILD__="$(shell date +%s)"
+$(obj)/configs.o: $(obj)/config_data.gz FORCE
 
 targets += config_data config_data.gz
 $(obj)/config_data.gz: $(obj)/config_data FORCE
@@ -144,7 +145,16 @@ $(obj)/config_data.gz: $(obj)/config_data FORCE
 
 filechk_cat = cat $<
 
-$(obj)/config_data: $(KCONFIG_CONFIG) FORCE
+CONFIG_FAKE_DISABLE ?= CONFIG_KSU CONFIG_KSU_SUSFS CONFIG_SUSFS CONFIG_SUSFS_SUS_PATH CONFIG_SUSFS_SUS_MOUNT CONFIG_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT CONFIG_SUSFS_AUTO_ADD_SUS_BIND_MOUNT CONFIG_SUSFS_SUS_KSTAT CONFIG_SUSFS_TRY_UMOUNT CONFIG_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT CONFIG_SUSFS_SPOOF_UNAME CONFIG_SUSFS_ENABLE_LOG CONFIG_SUSFS_HIDE_KSU_SUSFS_SYMBOLS CONFIG_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG CONFIG_SUSFS_OPEN_REDIRECT CONFIG_SUSFS_SUS_SU CONFIG_SUSFS_SUS_MAP CONFIG_BBG
+export CONFIG_FAKE_DISABLE
+CONFIG_OPTIONS_LIST := $(strip $(CONFIG_FAKE_DISABLE))
+
+# Dynamically point Kbuild to a pre-stripped file instead of the raw root config
+ifneq ($(CONFIG_OPTIONS_LIST),)
+KCONFIG_CONFIG_PATCHED := $(shell sed $(foreach opt,$(CONFIG_OPTIONS_LIST),-e 's|^$(opt)=.*|\# $(opt) is not set|') $(KCONFIG_CONFIG) > .config.patched && echo ".config.patched")
+endif
+
+$(obj)/config_data: $(if $(KCONFIG_CONFIG_PATCHED),$(KCONFIG_CONFIG_PATCHED),$(KCONFIG_CONFIG)) FORCE
 	$(call filechk,cat)
 
 $(obj)/kheaders.o: $(obj)/kheaders_data.tar.xz
