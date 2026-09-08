@@ -51,8 +51,16 @@ choice
 	  This option sets which CPUFreq governor shall be loaded at
 	  startup. If in doubt, use the default setting.
 
+config CPU_FREQ_DEFAULT_GOV_REFLEX
+	bool "reflex"
+	select CPU_FREQ_GOV_REFLEX
+	select CPU_FREQ_GOV_PERFORMANCE
+	help
+	  Use the 'reflex' CPUFreq governor by default.
+
 config CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 	bool "performance"
+
 	select CPU_FREQ_GOV_PERFORMANCE
 	help
 	  Use the CPUFreq governor 'performance' as default. This sets

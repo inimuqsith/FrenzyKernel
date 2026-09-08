@@ -47,7 +47,7 @@
 /**************************************************************
  * Default tunables
  */
-#define CPUFREQ_REFLEX_DEFAULT_HISPEED_WINDOW_US   4000
+#define CPUFREQ_REFLEX_DEFAULT_HISPEED_WINDOW_US   2000
 #define CPUFREQ_REFLEX_DEFAULT_HISPEED_FILTER_SHIFT   1
 
 
@@ -943,7 +943,7 @@ static int rfx_init(struct cpufreq_policy *policy)
 	}
 
 	/* Default tunable values */
-	tunables->rate_limit_us = cpufreq_policy_transition_delay_us(policy);
+	tunables->rate_limit_us = 500;
 	tunables->hispeed_window_us = CPUFREQ_REFLEX_DEFAULT_HISPEED_WINDOW_US;
 	tunables->hispeed_filter_shift = CPUFREQ_REFLEX_DEFAULT_HISPEED_FILTER_SHIFT;
 
