@@ -80,17 +80,22 @@ get_touch_event() {
 }
 
 get_current_mode() {
-    if pm list packages -d 2>/dev/null | grep -q "com.android.launcher3$"; then
+    if [ -f /dev/frenzy_tier2_active ]; then
         echo "tier2"
     else
-        COUNT=0
-        for pkg in org.omnirom.omnijaws com.mediatek.ims com.android.nfc; do
-            pm list packages -d 2>/dev/null | grep -q "${pkg}$" && COUNT=$((COUNT + 1))
-        done
-        if [ "$COUNT" -ge 2 ]; then
-            echo "tier1"
+        LPID=$(pidof com.android.launcher3 2>/dev/null)
+        if [ -n "$LPID" ] && grep -q "State:.*T (stopped)" "/proc/$LPID/status" 2>/dev/null; then
+            echo "tier2"
         else
-            echo "normal"
+            COUNT=0
+            for pkg in org.omnirom.omnijaws com.mediatek.ims com.android.nfc; do
+                pm list packages -d 2>/dev/null | grep -q "${pkg}$" && COUNT=$((COUNT + 1))
+            done
+            if [ "$COUNT" -ge 2 ]; then
+                echo "tier1"
+            else
+                echo "normal"
+            fi
         fi
     fi
 }
@@ -234,17 +239,41 @@ cmd_mode() {
     case "$target" in
         tier1|enable)
             echo -e "${YELLOW}[*] Switching to TIER 1: Smart Headless Debloat...${NC}"
-            # Restore launcher if coming from tier2
-            pm enable com.android.launcher3 >/dev/null 2>&1
-            settings put global policy_control null 2>/dev/null
             
-            # Stop Camera
+            # 1. If exiting Tier 2: restore physical display hardware & unfreeze GUI
+            rm -f /dev/frenzy_tier2_active
+            chmod 644 /sys/class/leds/lcd-backlight/brightness 2>/dev/null
+            chown system:system /sys/class/leds/lcd-backlight/brightness 2>/dev/null
+            echo 200 > /sys/class/leds/lcd-backlight/brightness 2>/dev/null
+            
+            SPID=$(pidof com.android.systemui 2>/dev/null)
+            [ -n "$SPID" ] && kill -CONT $SPID 2>/dev/null
+            killall -9 com.android.launcher3 2>/dev/null
+            
+            # Fallback if unfreeze needs package manager re-check
+            pm enable com.android.launcher3 >/dev/null 2>&1
+            pm enable com.android.systemui >/dev/null 2>&1
+            [ -z "$SPID" ] && am start-service -n com.android.systemui/.SystemUIService >/dev/null 2>&1
+            
+            # Wake display and restore navigation
+            cmd power wakeup 2>/dev/null
+            NAV_MODE=$(cat "${MODDIR}/nav_mode" 2>/dev/null)
+            [ -z "$NAV_MODE" ] || [ "$NAV_MODE" = "null" ] && NAV_MODE="2"
+            settings put secure navigation_mode "$NAV_MODE" 2>/dev/null
+            if [ "$NAV_MODE" = "0" ]; then
+                cmd overlay enable com.android.internal.systemui.navbar.threebutton 2>/dev/null
+            else
+                cmd overlay enable com.android.internal.systemui.navbar.gestural 2>/dev/null
+            fi
+            am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null 2>&1
+            
+            # 2. Stop Camera services
             stop camerahalserver 2>/dev/null
             stop cameraserver 2>/dev/null
             setprop ctl.stop camerahalserver 2>/dev/null
             setprop ctl.stop cameraserver 2>/dev/null
             
-            # Freeze 29 packages
+            # 3. Freeze 29 bloat packages
             COUNT=0
             for pkg in $TIER1_PKGS; do
                 if pm list packages 2>/dev/null | grep -q "${pkg}$"; then
@@ -253,13 +282,21 @@ cmd_mode() {
                 fi
             done
             
+            # 4. Drop caches & compact kernel memory
             echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
             echo 1 > /proc/sys/vm/compact_memory 2>/dev/null
+            
+            AVAIL_MB=$(( $(get_mem_kb "MemAvailable") / 1024 ))
             echo -e "${GREEN}✅ TIER 1 ACTIVE: ${COUNT} apps frozen, Camera halted, UI preserved.${NC}"
+            echo -e "   • Available RAM : ${AVAIL_MB} MB"
             ;;
             
         tier2|extreme|headless)
             echo -e "${CYAN}[*] Switching to TIER 2: EXTREME HEADLESS SERVER MODE...${NC}"
+            
+            # 0. Save current navigation mode
+            CURR_NAV=$(settings get secure navigation_mode 2>/dev/null)
+            [ -n "$CURR_NAV" ] && [ "$CURR_NAV" != "null" ] && echo "$CURR_NAV" > "${MODDIR}/nav_mode"
             
             # 1. Stop Camera HALs & freeze all Tier 1 bloat
             stop camerahalserver 2>/dev/null
@@ -270,30 +307,32 @@ cmd_mode() {
                 pm disable-user --user 0 "$pkg" >/dev/null 2>&1
             done
             
-            # 2. Freeze Android Graphical Shell (Launcher3 & SystemUI)
-            echo -e "[*] Freezing com.android.launcher3 (~350MB RAM)..."
-            pm disable-user --user 0 com.android.launcher3 >/dev/null 2>&1
+            # 2. Hardware Display Sleep & Backlight Lock first (pauses activities cleanly)
+            cmd power sleep --disable-wakelocks 2>/dev/null
+            echo 0 > /sys/class/leds/lcd-backlight/brightness 2>/dev/null
+            chown root:root /sys/class/leds/lcd-backlight/brightness 2>/dev/null
+            chmod 000 /sys/class/leds/lcd-backlight/brightness 2>/dev/null
             
-            echo -e "[*] Freezing com.android.systemui (~400MB RAM)..."
-            pm disable-user --user 0 com.android.systemui >/dev/null 2>&1
-            killall com.android.systemui 2>/dev/null
+            # 3. Freeze Android Graphical Shell via Linux SIGSTOP (Zero CPU/RAM overhead, NO FallbackHome loop!)
+            echo -e "[*] Freezing com.android.launcher3 & com.android.systemui via SIGSTOP..."
+            LPID=$(pidof com.android.launcher3 2>/dev/null)
+            SPID=$(pidof com.android.systemui 2>/dev/null)
+            [ -n "$LPID" ] && kill -STOP $LPID 2>/dev/null
+            [ -n "$SPID" ] && kill -STOP $SPID 2>/dev/null
+            touch /dev/frenzy_tier2_active
             
-            # 3. Ensure Essential 24/7 Server Services
-            # Touchscreen Ghost Shield
+            # 4. Touchscreen Ghost Shield
             cmd_touch "block" >/dev/null 2>&1
             
-            # Web Server on port 8888 (for PC browser dashboard)
+            # 5. Ensure Web Server on port 8888 (for PC browser dashboard)
             cmd_web "start" >/dev/null 2>&1
             
-            # Tailscale VPN Keepalive
+            # 6. Tailscale VPN Keepalive
             if ! ip link show tun1 >/dev/null 2>&1; then
                 cmd_vpn "connect" >/dev/null 2>&1
             fi
             
-            # 4. Turn off / sleep physical display (saves power, zero heat, zero burn-in)
-            input keyevent 26 2>/dev/null
-            
-            # 5. Drop caches & compact kernel memory
+            # 7. Drop caches & compact kernel memory
             echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
             echo 1 > /proc/sys/vm/compact_memory 2>/dev/null
             
@@ -302,8 +341,8 @@ cmd_mode() {
             VPN_IP=$(get_vpn_ip)
             echo -e "${GREEN}🎉 TIER 2 EXTREME HEADLESS ACTIVE!${NC}"
             echo -e "   • Available RAM  : ${GREEN}${BOLD}${AVAIL_MB} MB${NC} (>5.5 GB dedicated to Linux/Server)"
-            echo -e "   • Android GUI    : Completely Frozen (Zero GUI Overhead)"
-            echo -e "   • Display State  : Screen Sleeping (Controlled 100% via PC)"
+            echo -e "   • Android GUI    : Completely Frozen via SIGSTOP (Zero GUI Overhead)"
+            echo -e "   • Display State  : Hardware Screen Locked OFF (Controlled 100% via PC)"
             echo -e "   • PC LAN Access  : http://${WLAN_IP:-127.0.0.1}:8888"
             [ -n "$VPN_IP" ] && echo -e "   • Tailscale Web  : http://${VPN_IP}:8888"
             echo -e "   • LXC Container  : Droidspaces Debian 13 ACTIVE"
@@ -312,16 +351,34 @@ cmd_mode() {
         normal|disable|restore)
             echo -e "${YELLOW}[*] Restoring to NORMAL Consumer Phone Mode...${NC}"
             
-            # 1. Unfreeze Launcher3 & SystemUI
+            # 1. Remove Tier 2 marker & restore hardware backlight permissions
+            rm -f /dev/frenzy_tier2_active
+            chmod 644 /sys/class/leds/lcd-backlight/brightness 2>/dev/null
+            chown system:system /sys/class/leds/lcd-backlight/brightness 2>/dev/null
+            echo 200 > /sys/class/leds/lcd-backlight/brightness 2>/dev/null
+            
+            # 2. Unfreeze SystemUI & cleanly restart Launcher3
+            SPID=$(pidof com.android.systemui 2>/dev/null)
+            [ -n "$SPID" ] && kill -CONT $SPID 2>/dev/null
+            killall -9 com.android.launcher3 2>/dev/null
+            
+            # Fallback if processes were killed or disabled previously
             pm enable com.android.launcher3 >/dev/null 2>&1
             pm enable com.android.systemui >/dev/null 2>&1
-            am start-service -n com.android.systemui/.SystemUIService >/dev/null 2>&1
+            [ -z "$SPID" ] && am start-service -n com.android.systemui/.SystemUIService >/dev/null 2>&1
             
-            # 2. Wake screen
-            input keyevent 224 2>/dev/null
-            settings put global policy_control null 2>/dev/null
+            # 3. Wake screen & restore navigation mode
+            cmd power wakeup 2>/dev/null
+            NAV_MODE=$(cat "${MODDIR}/nav_mode" 2>/dev/null)
+            [ -z "$NAV_MODE" ] || [ "$NAV_MODE" = "null" ] && NAV_MODE="2"
+            settings put secure navigation_mode "$NAV_MODE" 2>/dev/null
+            if [ "$NAV_MODE" = "0" ]; then
+                cmd overlay enable com.android.internal.systemui.navbar.threebutton 2>/dev/null
+            else
+                cmd overlay enable com.android.internal.systemui.navbar.gestural 2>/dev/null
+            fi
             
-            # 3. Unfreeze all Tier 1 packages
+            # 4. Unfreeze all Tier 1 packages
             COUNT=0
             for pkg in $TIER1_PKGS; do
                 if pm list packages -d 2>/dev/null | grep -q "${pkg}$"; then
@@ -330,15 +387,15 @@ cmd_mode() {
                 fi
             done
             
-            # 4. Restart camera
+            # 5. Restart camera services
             start camerahalserver 2>/dev/null
             start cameraserver 2>/dev/null
             
-            # 5. Bring home screen up
+            # 6. Bring home screen up
             am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null 2>&1
             
             AVAIL_MB=$(( $(get_mem_kb "MemAvailable") / 1024 ))
-            echo -e "${GREEN}✅ Normal mode restored! Launcher, SystemUI & ${COUNT} apps re-enabled.${NC}"
+            echo -e "${GREEN}✅ Normal mode restored! Launcher, SystemUI, Navbar & ${COUNT} apps re-enabled.${NC}"
             echo -e "   • Available RAM : ${AVAIL_MB} MB"
             ;;
             
