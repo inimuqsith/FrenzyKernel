@@ -309,6 +309,7 @@ cmd_mode() {
             
             # 2. Hardware Display Sleep & Backlight Lock first (pauses activities cleanly)
             cmd power sleep --disable-wakelocks 2>/dev/null
+            chmod 644 /sys/class/leds/lcd-backlight/brightness 2>/dev/null
             echo 0 > /sys/class/leds/lcd-backlight/brightness 2>/dev/null
             chown root:root /sys/class/leds/lcd-backlight/brightness 2>/dev/null
             chmod 000 /sys/class/leds/lcd-backlight/brightness 2>/dev/null
@@ -332,7 +333,8 @@ cmd_mode() {
                 cmd_vpn "connect" >/dev/null 2>&1
             fi
             
-            # 7. Drop caches & compact kernel memory
+            # 7. Drop cached background apps, page caches & compact kernel memory
+            cmd activity kill-all >/dev/null 2>&1
             echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
             echo 1 > /proc/sys/vm/compact_memory 2>/dev/null
             
@@ -542,6 +544,7 @@ cmd_touch() {
 cmd_trim() {
     echo -e "${YELLOW}[*] Dropping caches and compacting memory...${NC}"
     BEFORE_KB=$(get_mem_kb "MemAvailable")
+    cmd activity kill-all >/dev/null 2>&1
     echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
     echo 1 > /proc/sys/vm/compact_memory 2>/dev/null
     AFTER_KB=$(get_mem_kb "MemAvailable")
