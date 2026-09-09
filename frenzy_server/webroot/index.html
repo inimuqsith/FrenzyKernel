@@ -23,6 +23,22 @@
       </div>
     </header>
 
+    <!-- Mode Selector Card -->
+    <div class="card mode-card">
+      <div class="card-header">
+        <span class="card-title">🎛️ Server Mode Selector</span>
+        <span id="current-mode-badge" class="badge badge-primary">TIER 1</span>
+      </div>
+      <div class="segmented-control">
+        <button class="seg-btn" data-mode="normal" id="btn-mode-normal">Normal</button>
+        <button class="seg-btn active" data-mode="tier1" id="btn-mode-tier1">Tier 1 (Debloat)</button>
+        <button class="seg-btn" data-mode="tier2" id="btn-mode-tier2">Tier 2 (Kiosk)</button>
+      </div>
+      <div id="mode-description" class="mode-desc-text">
+        Tier 1: 29 bloat apps frozen & camera HAL halted. Full Android UI preserved.
+      </div>
+    </div>
+
     <!-- Metrics Cards Grid -->
     <div class="grid grid-2">
       <!-- RAM Metric Card -->
@@ -33,7 +49,7 @@
         </div>
         <div class="metric-main">
           <span id="ram-avail" class="metric-value">-- MB</span>
-          <span class="metric-sub">Available for Server</span>
+          <span class="metric-sub">Available for Server/LXC</span>
         </div>
         <div class="progress-bar-container">
           <div id="ram-bar" class="progress-bar" style="width: 0%;"></div>
@@ -66,31 +82,56 @@
       </div>
     </div>
 
-    <!-- Control Center Section -->
-    <h2 class="section-heading">🛠️ Server Controls</h2>
-
-    <!-- Debloat Control -->
-    <div class="card control-card">
-      <div class="control-info">
-        <div class="control-icon">🚀</div>
-        <div>
-          <div class="control-title">Headless Server Debloat (Tier 1)</div>
-          <div class="control-desc" id="debloat-desc">Freezes 29 bloatware apps & halts camera HALs</div>
+    <!-- Integrated Services: Tailscale VPN & Droidspaces Grid -->
+    <h2 class="section-heading">🌐 Integrated Server Services</h2>
+    <div class="grid grid-2">
+      <!-- Tailscale VPN Card -->
+      <div class="card service-card">
+        <div class="card-header">
+          <div class="service-title-row">
+            <span class="service-icon">🌐</span>
+            <div>
+              <div class="service-name">Tailscale VPN</div>
+              <div id="vpn-ip" class="service-meta">IP: Checking...</div>
+            </div>
+          </div>
+          <span id="vpn-badge" class="badge badge-success">CONNECTED</span>
+        </div>
+        <div class="service-actions">
+          <button id="btn-toggle-vpn" class="btn-service">⚡ Disconnect</button>
+          <button id="btn-open-vpn" class="btn-service secondary">🚀 Open App</button>
         </div>
       </div>
-      <label class="switch">
-        <input type="checkbox" id="toggle-debloat">
-        <span class="slider"></span>
-      </label>
+
+      <!-- Droidspaces Linux Container Card -->
+      <div class="card service-card">
+        <div class="card-header">
+          <div class="service-title-row">
+            <span class="service-icon">🐧</span>
+            <div>
+              <div class="service-name">Droidspaces LXC</div>
+              <div class="service-meta">Debian 13 (Trixie)</div>
+            </div>
+          </div>
+          <span id="ds-badge" class="badge badge-success">RUNNING</span>
+        </div>
+        <div class="service-actions">
+          <button id="btn-open-ds" class="btn-service">🚀 Open App</button>
+          <button id="btn-restart-ds" class="btn-service secondary">🔄 Restart</button>
+        </div>
+      </div>
     </div>
+
+    <!-- Hardware Shields Section -->
+    <h2 class="section-heading">🛡️ Hardware Shields & Controls</h2>
 
     <!-- Touch Blocker Control -->
     <div class="card control-card">
       <div class="control-info">
-        <div class="control-icon">🛡️</div>
+        <div class="control-icon">🛑</div>
         <div>
-          <div class="control-title">Ghost-Touch Screen Shield</div>
-          <div class="control-desc" id="touch-desc">Blocks physical touchscreen inputs (anti-ghost touch)</div>
+          <div class="control-title">Touchscreen Ghost Shield</div>
+          <div class="control-desc" id="touch-desc">Hardware-level EVIOCGRAB touch lock</div>
         </div>
       </div>
       <label class="switch">
@@ -102,7 +143,7 @@
     <!-- Hardware Shields Status Card -->
     <div class="card status-card">
       <div class="card-header">
-        <span class="card-title">🧩 Hardware Shields</span>
+        <span class="card-title">🧩 Hardware Shields Status</span>
       </div>
       <div class="status-list">
         <div class="status-item">
@@ -114,12 +155,12 @@
           <span id="cam-status" class="badge badge-success">HALTED</span>
         </div>
         <div class="status-item">
-          <span class="status-label">Droidspaces Container (LXC):</span>
-          <span id="ds-status" class="badge badge-success">RUNNING</span>
-        </div>
-        <div class="status-item">
           <span class="status-label">NTSync Game/Server Engine:</span>
           <span class="badge badge-primary">0666 ACTIVE</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">WebUI Server (LAN):</span>
+          <span id="web-status" class="badge badge-primary">PORT 8888</span>
         </div>
       </div>
       <div class="card-footer-actions">
@@ -130,16 +171,16 @@
     <!-- Live Terminal Console -->
     <div class="card console-card">
       <div class="console-header">
-        <span class="console-title">🖥️ Output Console</span>
+        <span class="console-title">🖥️ Live Command Console</span>
         <button id="btn-clear-log" class="btn-clear">Clear</button>
       </div>
-      <pre id="console-output" class="console-output">> FrenzyServer WebUI initialized.
+      <pre id="console-output" class="console-output">> FrenzyServer Engine initialized.
 > Ready for commands.</pre>
     </div>
 
     <!-- Footer -->
     <footer class="footer">
-      <span>FrenzyServer v3.0-Fusion • Kernel 5.10</span>
+      <span>FrenzyServer v3.0-Fusion • Linux 5.10</span>
       <span>Engineered by Muqsith</span>
     </footer>
   </div>

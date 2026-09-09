@@ -20,6 +20,7 @@ ui_print "- Menyetel executable permissions..."
 set_perm_recursive "$MODPATH" 0 0 0755 0644
 set_perm_recursive "$MODPATH/bin" 0 0 0755 0755
 set_perm_recursive "$MODPATH/system/bin" 0 0 0755 0755
+set_perm_recursive "$MODPATH/webroot/cgi-bin" 0 0 0755 0755
 set_perm "$MODPATH/service.sh" 0 0 0755
 set_perm "$MODPATH/post-fs-data.sh" 0 0 0755
 set_perm "$MODPATH/action.sh" 0 0 0755

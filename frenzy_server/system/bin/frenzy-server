@@ -9,8 +9,9 @@ MODDIR="/data/adb/modules/frenzy_server"
 [ ! -d "$MODDIR" ] && MODDIR="/data/adb/modules/frenzy_g99_server_fusion"
 
 TOUCH_BIN="${MODDIR}/bin/touch_blocker"
-[ ! -f "$TOUCH_BIN" ] && TOUCH_BIN="/data/adb/modules/frenzy_touch_blocker/bin/touch_blocker"
 TOUCH_LOG="/data/local/tmp/touch_blocker.log"
+HTTPD_BIN="/data/adb/ksu/bin/busybox"
+WEBROOT="${MODDIR}/webroot"
 
 # Colors
 RED='\033[0;31m'
@@ -40,7 +41,6 @@ com.android.wallpaper.livepicker
 org.yaap.wallpaper.overlay.vanilla
 com.android.cameraextensions
 com.google.android.apps.googlecamera.fishfood
-app.vanadium.browser
 org.fdroid.fdroid
 com.android.rkpdapp
 com.android.nfc
@@ -79,6 +79,60 @@ get_touch_event() {
     echo "$TOUCH_EVENT"
 }
 
+get_current_mode() {
+    if pm list packages -d 2>/dev/null | grep -q "com.android.launcher3$"; then
+        echo "tier2"
+    else
+        COUNT=0
+        for pkg in org.omnirom.omnijaws com.mediatek.ims com.android.nfc; do
+            pm list packages -d 2>/dev/null | grep -q "${pkg}$" && COUNT=$((COUNT + 1))
+        done
+        if [ "$COUNT" -ge 2 ]; then
+            echo "tier1"
+        else
+            echo "normal"
+        fi
+    fi
+}
+
+get_vpn_ip() {
+    ip -4 addr show tun1 2>/dev/null | grep -oE "inet [0-9.]+" | awk '{print $2}'
+}
+
+cmd_help() {
+    show_banner
+    echo -e "${BOLD}FrenzyServer Command-Line Interface Manual${NC}\n"
+    echo -e "${BOLD}USAGE:${NC}"
+    echo -e "  frenzy-server [command] [options]\n"
+    echo -e "${BOLD}CORE COMMANDS:${NC}"
+    echo -e "  ${GREEN}status${NC}                  Show real-time RAM, thermal, container & hardware status"
+    echo -e "  ${GREEN}help${NC}                    Show this help manual and usage guide"
+    echo -e "  ${GREEN}json${NC}                    Dump complete system metrics in JSON format (for WebUI/API)\n"
+    echo -e "${BOLD}SERVER MODES (TIERS):${NC}"
+    echo -e "  ${GREEN}mode normal${NC}             Restore standard phone mode (unfreeze launcher & apps)"
+    echo -e "  ${GREEN}mode tier1${NC}              Activate Tier 1 Smart Debloat (~1.5GB RAM saved, keeps UI)"
+    echo -e "  ${GREEN}mode tier2${NC}              Activate Tier 2 Appliance Kiosk (WebUI on screen, ~2.5GB saved)\n"
+    echo -e "${BOLD}INTEGRATED SERVICES:${NC}"
+    echo -e "  ${GREEN}vpn status${NC}              Check Tailscale VPN tunnel and IP address"
+    echo -e "  ${GREEN}vpn connect${NC}             Connect Tailscale VPN tunnel (broadcast)"
+    echo -e "  ${GREEN}vpn disconnect${NC}          Disconnect Tailscale VPN tunnel (broadcast)"
+    echo -e "  ${GREEN}vpn open${NC}                Launch Tailscale application on screen\n"
+    echo -e "  ${GREEN}droidspaces status${NC}      Check Droidspaces container & services"
+    echo -e "  ${GREEN}droidspaces open${NC}        Launch Droidspaces application on screen"
+    echo -e "  ${GREEN}droidspaces restart${NC}     Restart Droidspaces container instance\n"
+    echo -e "${BOLD}HARDWARE & MEMORY CONTROLS:${NC}"
+    echo -e "  ${GREEN}touch [block|unblock]${NC}   Toggle physical touchscreen ghost-touch shield"
+    echo -e "  ${GREEN}trim${NC}                    Drop Linux page caches & compact kernel memory"
+    echo -e "  ${GREEN}fp clean${NC}                Delete crash dump tombstones from storage"
+    echo -e "  ${GREEN}web [start|stop|status]${NC} Manage local WebUI HTTP server on port 8888\n"
+    echo -e "${BOLD}EXAMPLES:${NC}"
+    echo -e "  adb shell su -c 'frenzy-server status'"
+    echo -e "  adb shell su -c 'frenzy-server mode tier2'"
+    echo -e "  adb shell su -c 'frenzy-server vpn connect'"
+    echo -e "  adb shell su -c 'frenzy-server trim'"
+    echo -e "${CYAN}======================================================${NC}"
+}
+
 cmd_status() {
     show_banner
     
@@ -92,6 +146,7 @@ cmd_status() {
     AVAIL_MB=$((AVAIL_KB / 1024))
     USED_MB=$((TOTAL_MB - AVAIL_MB))
     BATT_TEMP=$(get_batt_temp)
+    MODE=$(get_current_mode)
     
     echo -e "${BOLD}[1] RAM & Memory Health:${NC}"
     echo -e "  • Total RAM     : ${GREEN}${TOTAL_MB} MB${NC} (~8 GB)"
@@ -100,9 +155,24 @@ cmd_status() {
     echo -e "  • Available RAM : ${GREEN}${BOLD}${AVAIL_MB} MB${NC} (Available for Server/LXC)"
     echo -e "  • Battery Temp  : ${GREEN}${BATT_TEMP}°C${NC} (Smart Guard Limit: 47°C)"
     
+    echo -e "\n${BOLD}[2] Server Mode (Current):${NC}"
+    case "$MODE" in
+        tier2)
+            echo -e "  • Active Mode   : ${CYAN}${BOLD}TIER 2 (Appliance Kiosk Mode)${NC}"
+            echo -e "  • Screen State  : Dedicated FrenzyServer WebUI Display"
+            ;;
+        tier1)
+            echo -e "  • Active Mode   : ${GREEN}${BOLD}TIER 1 (Smart Headless Debloat)${NC}"
+            echo -e "  • Screen State  : Normal Android Launcher (Bloat Apps Frozen)"
+            ;;
+        *)
+            echo -e "  • Active Mode   : ${YELLOW}NORMAL (Consumer Phone Mode)${NC}"
+            ;;
+    esac
+    
     # Check Camera Services
     CAM_HAL=$(getprop init.svc.camerahalserver 2>/dev/null)
-    echo -e "\n${BOLD}[2] Hardware Subsystems:${NC}"
+    echo -e "\n${BOLD}[3] Hardware Subsystems:${NC}"
     if [ "$CAM_HAL" = "stopped" ] || [ -z "$CAM_HAL" ]; then
         echo -e "  • Camera HALs   : ${GREEN}DISABLED / STOPPED${NC} (~200MB saved)"
     else
@@ -124,71 +194,227 @@ cmd_status() {
         echo -e "  • Ghost Touch   : ${YELLOW}UNBLOCKED (Touch Active)${NC}"
     fi
     
-    # Check Tier 1 Package Status
-    TOTAL_TARGETS=0
-    DISABLED_COUNT=0
-    for pkg in $TIER1_PKGS; do
-        TOTAL_TARGETS=$((TOTAL_TARGETS + 1))
-        if pm list packages -d 2>/dev/null | grep -q "${pkg}$"; then
-            DISABLED_COUNT=$((DISABLED_COUNT + 1))
-        fi
-    done
-    
-    echo -e "\n${BOLD}[3] Headless Server Debloat (Tier 1):${NC}"
-    if [ "$DISABLED_COUNT" -ge 20 ]; then
-        echo -e "  • Status        : ${GREEN}${BOLD}ACTIVE${NC} (${DISABLED_COUNT}/${TOTAL_TARGETS} packages frozen)"
+    # Check Integrated Services (Tailscale & Droidspaces)
+    echo -e "\n${BOLD}[4] Integrated Services:${NC}"
+    VPN_IP=$(get_vpn_ip)
+    if [ -n "$VPN_IP" ]; then
+        echo -e "  • Tailscale VPN : ${GREEN}CONNECTED${NC} (IP: ${BOLD}${VPN_IP}${NC}, dev tun1)"
     else
-        echo -e "  • Status        : ${YELLOW}INACTIVE${NC} (${DISABLED_COUNT}/${TOTAL_TARGETS} packages frozen)"
+        echo -e "  • Tailscale VPN : ${YELLOW}DISCONNECTED${NC}"
     fi
     
-    # Check Droidspaces / Linux Containers
-    echo -e "\n${BOLD}[4] Linux Containers (Droidspaces):${NC}"
     if pidof droidspaces >/dev/null 2>&1; then
-        echo -e "  • Droidspaces   : ${GREEN}RUNNING${NC} (PIDs: $(pidof droidspaces))"
-        if pidof nginx >/dev/null 2>&1; then
-            echo -e "  • Nginx Service : ${GREEN}ACTIVE${NC}"
-        fi
-        if pidof node >/dev/null 2>&1 || ps -ef | grep -q "pm2"; then
-            echo -e "  • PM2 / Node.js : ${GREEN}ACTIVE${NC}"
-        fi
+        echo -e "  • Droidspaces   : ${GREEN}RUNNING (Debian 13)${NC} (PIDs: $(pidof droidspaces))"
+        pidof nginx >/dev/null 2>&1 && echo -e "    └─ Nginx      : ${GREEN}ACTIVE${NC}"
+        (pidof node >/dev/null 2>&1 || ps -ef | grep -q "pm2") && echo -e "    └─ PM2/Node   : ${GREEN}ACTIVE${NC}"
     else
         echo -e "  • Droidspaces   : ${RED}STOPPED${NC}"
     fi
+    
+    # Local WebUI Server
+    if pgrep -f "httpd" >/dev/null 2>&1; then
+        WLAN_IP=$(ip -4 addr show wlan0 2>/dev/null | grep -oE "inet [0-9.]+" | awk '{print $2}')
+        echo -e "  • WebUI Server  : ${GREEN}RUNNING (Port 8888)${NC}"
+        echo -e "    └─ LAN URL    : http://${WLAN_IP:-127.0.0.1}:8888"
+        [ -n "$VPN_IP" ] && echo -e "    └─ Tailscale  : http://${VPN_IP}:8888"
+    else
+        echo -e "  • WebUI Server  : ${YELLOW}STOPPED${NC} (KernelSU Manager only)"
+    fi
+    
     echo -e "${CYAN}======================================================${NC}"
 }
 
-cmd_enable_debloat() {
-    echo -e "${YELLOW}[*] Activating Tier 1: Smart Headless Server Debloat...${NC}"
-    stop camerahalserver 2>/dev/null
-    stop cameraserver 2>/dev/null
-    setprop ctl.stop camerahalserver 2>/dev/null
-    setprop ctl.stop cameraserver 2>/dev/null
-    
-    COUNT=0
-    for pkg in $TIER1_PKGS; do
-        if pm list packages 2>/dev/null | grep -q "${pkg}$"; then
-            pm disable-user --user 0 "$pkg" >/dev/null 2>&1
-            COUNT=$((COUNT + 1))
-        fi
-    done
-    
-    echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
-    echo 1 > /proc/sys/vm/compact_memory 2>/dev/null
-    echo -e "${GREEN}✅ Tier 1 Debloat ACTIVE: ${COUNT} apps frozen, Camera stopped.${NC}"
+cmd_mode() {
+    target="$1"
+    show_banner
+    case "$target" in
+        tier1|enable)
+            echo -e "${YELLOW}[*] Switching to TIER 1: Smart Headless Debloat...${NC}"
+            # Restore launcher if coming from tier2
+            pm enable com.android.launcher3 >/dev/null 2>&1
+            settings put global policy_control null 2>/dev/null
+            
+            # Stop Camera
+            stop camerahalserver 2>/dev/null
+            stop cameraserver 2>/dev/null
+            setprop ctl.stop camerahalserver 2>/dev/null
+            setprop ctl.stop cameraserver 2>/dev/null
+            
+            # Freeze 29 packages
+            COUNT=0
+            for pkg in $TIER1_PKGS; do
+                if pm list packages 2>/dev/null | grep -q "${pkg}$"; then
+                    pm disable-user --user 0 "$pkg" >/dev/null 2>&1
+                    COUNT=$((COUNT + 1))
+                fi
+            done
+            
+            echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
+            echo 1 > /proc/sys/vm/compact_memory 2>/dev/null
+            echo -e "${GREEN}✅ TIER 1 ACTIVE: ${COUNT} apps frozen, Camera halted, UI preserved.${NC}"
+            ;;
+            
+        tier2)
+            echo -e "${YELLOW}[*] Switching to TIER 2: Appliance Kiosk Mode...${NC}"
+            
+            # 1. First ensure Tier 1 debloat is in place
+            stop camerahalserver 2>/dev/null
+            stop cameraserver 2>/dev/null
+            for pkg in $TIER1_PKGS; do
+                pm disable-user --user 0 "$pkg" >/dev/null 2>&1
+            done
+            
+            # 2. Freeze Launcher3
+            echo -e "[*] Freezing com.android.launcher3 (~350MB RAM)..."
+            pm disable-user --user 0 com.android.launcher3 >/dev/null 2>&1
+            
+            # 3. Hide system bars (immersive full screen)
+            settings put global policy_control immersive.full=* 2>/dev/null
+            
+            # 4. Ensure Web Server is running on port 8888
+            cmd_web "start" >/dev/null 2>&1
+            
+            # 5. Launch Kiosk WebUI on physical display
+            echo -e "[*] Launching FrenzyServer WebUI on physical display..."
+            am start -n com.rifsxd.ksunext/.ui.MainActivity >/dev/null 2>&1
+            
+            echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
+            echo 1 > /proc/sys/vm/compact_memory 2>/dev/null
+            
+            AVAIL_MB=$(( $(get_mem_kb "MemAvailable") / 1024 ))
+            echo -e "${GREEN}🎉 TIER 2 APPLIANCE KIOSK ACTIVE!${NC}"
+            echo -e "   • Available RAM : ${GREEN}${BOLD}${AVAIL_MB} MB${NC}"
+            echo -e "   • Screen State  : FrenzyServer WebUI Kiosk"
+            echo -e "   • LAN Access    : http://$(ip -4 addr show wlan0 2>/dev/null | grep -oE "inet [0-9.]+" | awk '{print $2}'):8888"
+            ;;
+            
+        normal|disable|restore)
+            echo -e "${YELLOW}[*] Restoring to NORMAL Consumer Phone Mode...${NC}"
+            
+            # Unfreeze Launcher3
+            pm enable com.android.launcher3 >/dev/null 2>&1
+            
+            # Unfreeze all Tier 1 packages
+            COUNT=0
+            for pkg in $TIER1_PKGS; do
+                if pm list packages -d 2>/dev/null | grep -q "${pkg}$"; then
+                    pm enable "$pkg" >/dev/null 2>&1
+                    COUNT=$((COUNT + 1))
+                fi
+            done
+            
+            # Restart camera
+            start camerahalserver 2>/dev/null
+            start cameraserver 2>/dev/null
+            
+            # Restore system bars
+            settings put global policy_control null 2>/dev/null
+            
+            # Bring home screen up
+            am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null 2>&1
+            
+            echo -e "${GREEN}✅ Normal mode restored! Launcher & ${COUNT} apps re-enabled.${NC}"
+            ;;
+            
+        *)
+            echo -e "${RED}Invalid mode. Usage: frenzy-server mode [normal|tier1|tier2]${NC}"
+            exit 1
+            ;;
+    esac
+    echo -e "${CYAN}======================================================${NC}"
 }
 
-cmd_disable_debloat() {
-    echo -e "${YELLOW}[*] Restoring Android Host to Normal Mode...${NC}"
-    COUNT=0
-    for pkg in $TIER1_PKGS; do
-        if pm list packages -d 2>/dev/null | grep -q "${pkg}$"; then
-            pm enable "$pkg" >/dev/null 2>&1
-            COUNT=$((COUNT + 1))
-        fi
-    done
-    start camerahalserver 2>/dev/null
-    start cameraserver 2>/dev/null
-    echo -e "${GREEN}✅ Restored ${COUNT} apps and restarted Camera services.${NC}"
+cmd_vpn() {
+    sub="$1"
+    case "$sub" in
+        connect)
+            echo -e "${YELLOW}[*] Connecting Tailscale VPN tunnel...${NC}"
+            am broadcast -a com.tailscale.ipn.CONNECT_VPN -n com.tailscale.ipn/.IPNReceiver >/dev/null 2>&1
+            sleep 2
+            VPN_IP=$(get_vpn_ip)
+            if [ -n "$VPN_IP" ]; then
+                echo -e "${GREEN}✅ Tailscale VPN CONNECTED (IP: ${BOLD}${VPN_IP}${NC}).${NC}"
+            else
+                echo -e "${YELLOW}[*] Broadcast sent. Tunnel establishing...${NC}"
+            fi
+            ;;
+        disconnect)
+            echo -e "${YELLOW}[*] Disconnecting Tailscale VPN tunnel...${NC}"
+            am broadcast -a com.tailscale.ipn.DISCONNECT_VPN -n com.tailscale.ipn/.IPNReceiver >/dev/null 2>&1
+            sleep 1
+            echo -e "${GREEN}✅ Tailscale VPN disconnected.${NC}"
+            ;;
+        open)
+            echo -e "${YELLOW}[*] Launching Tailscale application...${NC}"
+            am start -n com.tailscale.ipn/.MainActivity >/dev/null 2>&1
+            echo -e "${GREEN}✅ Tailscale opened on screen.${NC}"
+            ;;
+        status|*)
+            VPN_IP=$(get_vpn_ip)
+            if [ -n "$VPN_IP" ]; then
+                echo -e "Tailscale VPN: ${GREEN}CONNECTED${NC} (IP: ${VPN_IP}, Interface: tun1)"
+            else
+                echo -e "Tailscale VPN: ${YELLOW}DISCONNECTED${NC}"
+            fi
+            ;;
+    esac
+}
+
+cmd_droidspaces() {
+    sub="$1"
+    case "$sub" in
+        open)
+            echo -e "${YELLOW}[*] Launching Droidspaces application...${NC}"
+            am start -n com.droidspaces.app/.MainActivity >/dev/null 2>&1
+            echo -e "${GREEN}✅ Droidspaces opened on screen.${NC}"
+            ;;
+        restart)
+            echo -e "${YELLOW}[*] Restarting Droidspaces container (my-container)...${NC}"
+            /data/local/Droidspaces/bin/droidspaces --config /data/local/Droidspaces/Containers/my-container/container.config restart >/dev/null 2>&1
+            sleep 2
+            if pidof droidspaces >/dev/null 2>&1; then
+                echo -e "${GREEN}✅ Droidspaces container restarted successfully!${NC}"
+            else
+                echo -e "${RED}[!] Container failed to start.${NC}"
+            fi
+            ;;
+        status|*)
+            if pidof droidspaces >/dev/null 2>&1; then
+                echo -e "Droidspaces: ${GREEN}RUNNING${NC} (Container: my-container, PID: $(pidof droidspaces))"
+            else
+                echo -e "Droidspaces: ${RED}STOPPED${NC}"
+            fi
+            ;;
+    esac
+}
+
+cmd_web() {
+    sub="$1"
+    case "$sub" in
+        start)
+            killall httpd 2>/dev/null
+            if [ -x "$HTTPD_BIN" ] && [ -d "$WEBROOT" ]; then
+                "$HTTPD_BIN" httpd -p 8888 -h "$WEBROOT" 2>/dev/null
+                WLAN_IP=$(ip -4 addr show wlan0 2>/dev/null | grep -oE "inet [0-9.]+" | awk '{print $2}')
+                echo -e "${GREEN}✅ WebUI Server started on port 8888.${NC}"
+                echo -e "   • Local / LAN : http://${WLAN_IP:-127.0.0.1}:8888"
+            else
+                echo -e "${RED}[!] busybox or webroot missing.${NC}"
+            fi
+            ;;
+        stop)
+            pkill -f "busybox httpd" 2>/dev/null
+            killall httpd 2>/dev/null
+            echo -e "${GREEN}✅ WebUI Server stopped.${NC}"
+            ;;
+        status|*)
+            if pgrep -f "httpd" >/dev/null 2>&1; then
+                echo -e "WebUI Server: ${GREEN}RUNNING${NC} (Port 8888)"
+            else
+                echo -e "WebUI Server: ${YELLOW}STOPPED${NC}"
+            fi
+            ;;
+    esac
 }
 
 cmd_touch() {
@@ -246,30 +472,26 @@ cmd_json() {
     FREE_KB=$(get_mem_kb "MemFree")
     AVAIL_KB=$(get_mem_kb "MemAvailable")
     CACHED_KB=$(get_mem_kb "Cached")
-    BUFFERS_KB=$(get_mem_kb "Buffers")
     TOTAL_MB=$((TOTAL_KB / 1024))
     FREE_MB=$((FREE_KB / 1024))
     AVAIL_MB=$((AVAIL_KB / 1024))
     USED_MB=$((TOTAL_MB - AVAIL_MB))
     CACHED_MB=$((CACHED_KB / 1024))
     BATT_TEMP=$(get_batt_temp)
+    MODE=$(get_current_mode)
     
-    # Touch status
     TOUCH_PID=$(pidof touch_blocker 2>/dev/null)
     TOUCH_BLOCKED="false"
     [ -n "$TOUCH_PID" ] && TOUCH_BLOCKED="true"
     
-    # Camera status
     CAM_HAL=$(getprop init.svc.camerahalserver 2>/dev/null)
     CAM_STOPPED="true"
     [ "$CAM_HAL" = "running" ] && CAM_STOPPED="false"
     
-    # FP status
     FP_HAL=$(getprop init.svc.vendor.fps_hal 2>/dev/null)
     FP_KILLED="true"
     [ "$FP_HAL" = "running" ] && FP_KILLED="false"
     
-    # Debloat count
     TOTAL_TARGETS=0
     DISABLED_COUNT=0
     for pkg in $TIER1_PKGS; do
@@ -278,10 +500,7 @@ cmd_json() {
             DISABLED_COUNT=$((DISABLED_COUNT + 1))
         fi
     done
-    DEBLOAT_ACTIVE="false"
-    [ "$DISABLED_COUNT" -ge 20 ] && DEBLOAT_ACTIVE="true"
     
-    # Droidspaces
     DS_RUNNING="false"
     pidof droidspaces >/dev/null 2>&1 && DS_RUNNING="true"
     NGINX_RUNNING="false"
@@ -289,8 +508,16 @@ cmd_json() {
     PM2_RUNNING="false"
     (pidof node >/dev/null 2>&1 || ps -ef | grep -q "pm2") && PM2_RUNNING="true"
     
+    VPN_IP=$(get_vpn_ip)
+    VPN_CONNECTED="false"
+    [ -n "$VPN_IP" ] && VPN_CONNECTED="true"
+    
+    HTTPD_RUNNING="false"
+    pgrep -f "httpd" >/dev/null 2>&1 && HTTPD_RUNNING="true"
+    
     cat << JSON
 {
+  "mode": "${MODE}",
   "ram": {
     "total_mb": ${TOTAL_MB},
     "used_mb": ${USED_MB},
@@ -312,14 +539,22 @@ cmd_json() {
     "killed": ${FP_KILLED}
   },
   "debloat": {
-    "active": ${DEBLOAT_ACTIVE},
+    "active": $( [ "$MODE" != "normal" ] && echo "true" || echo "false" ),
     "disabled_count": ${DISABLED_COUNT},
     "total_targets": ${TOTAL_TARGETS}
+  },
+  "vpn": {
+    "connected": ${VPN_CONNECTED},
+    "ip": "${VPN_IP:-""}"
   },
   "droidspaces": {
     "running": ${DS_RUNNING},
     "nginx": ${NGINX_RUNNING},
     "pm2": ${PM2_RUNNING}
+  },
+  "web_server": {
+    "running": ${HTTPD_RUNNING},
+    "port": 8888
   }
 }
 JSON
@@ -329,11 +564,29 @@ case "$1" in
     status)
         cmd_status
         ;;
-    enable|tier1)
-        cmd_enable_debloat
+    help|--help|-h)
+        cmd_help
         ;;
-    disable|restore)
-        cmd_disable_debloat
+    mode)
+        cmd_mode "$2"
+        ;;
+    enable|tier1)
+        cmd_mode "tier1"
+        ;;
+    tier2)
+        cmd_mode "tier2"
+        ;;
+    disable|restore|normal)
+        cmd_mode "normal"
+        ;;
+    vpn)
+        cmd_vpn "$2"
+        ;;
+    droidspaces|ds)
+        cmd_droidspaces "$2"
+        ;;
+    web)
+        cmd_web "$2"
         ;;
     touch)
         cmd_touch "$2"
@@ -341,20 +594,19 @@ case "$1" in
     trim|clean)
         cmd_trim
         ;;
+    fp)
+        if [ "$2" = "clean" ]; then
+            rm -f /data/tombstones/*fingerprint* 2>/dev/null
+            echo -e "${GREEN}✅ Fingerprint crash tombstones cleaned!${NC}"
+        else
+            cmd_status
+        fi
+        ;;
     json)
         cmd_json
         ;;
     *)
-        show_banner
-        echo -e "${BOLD}Usage:${NC} frenzy-server [command]"
-        echo ""
-        echo -e "  ${GREEN}status${NC}          Show full system health, RAM & server state"
-        echo -e "  ${GREEN}enable${NC}          Activate Tier 1 Headless Server Debloat"
-        echo -e "  ${GREEN}disable${NC}         Restore Android to normal mode (unfreeze apps)"
-        echo -e "  ${GREEN}touch [on|off]${NC}  Control Touchscreen Ghost Shield"
-        echo -e "  ${GREEN}trim${NC}            Drop dormant caches & compact memory"
-        echo -e "  ${GREEN}json${NC}            Dump complete metrics in JSON format for WebUI"
-        echo -e "${CYAN}======================================================${NC}"
+        cmd_help
         exit 1
         ;;
 esac

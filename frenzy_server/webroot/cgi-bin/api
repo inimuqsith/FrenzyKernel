@@ -1,0 +1,52 @@
+#!/system/bin/sh
+echo "Content-Type: application/json"
+echo "Access-Control-Allow-Origin: *"
+echo ""
+
+CMD=$(echo "$QUERY_STRING" | sed -n "s/^cmd=//p" | tr -d "\r\n")
+
+case "$CMD" in
+    json|"")
+        frenzy-server json
+        ;;
+    trim)
+        frenzy-server trim
+        ;;
+    tier1)
+        frenzy-server mode tier1
+        ;;
+    tier2)
+        frenzy-server mode tier2
+        ;;
+    normal)
+        frenzy-server mode normal
+        ;;
+    touch_block)
+        frenzy-server touch block
+        ;;
+    touch_unblock)
+        frenzy-server touch unblock
+        ;;
+    vpn_connect)
+        frenzy-server vpn connect
+        ;;
+    vpn_disconnect)
+        frenzy-server vpn disconnect
+        ;;
+    vpn_open)
+        frenzy-server vpn open
+        ;;
+    ds_open)
+        frenzy-server droidspaces open
+        ;;
+    ds_restart)
+        frenzy-server droidspaces restart
+        ;;
+    clean_tb)
+        rm -f /data/tombstones/*fingerprint* 2>/dev/null
+        echo '{"status":"ok","message":"Tombstones cleaned"}'
+        ;;
+    *)
+        echo '{"error":"unknown_command"}'
+        ;;
+esac

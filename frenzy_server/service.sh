@@ -80,6 +80,12 @@ elif [ -x /data/adb/ksu/bin/frenzy-server ]; then
     /data/adb/ksu/bin/frenzy-server enable >/dev/null 2>&1
 fi
 
+# Start local WebUI HTTP daemon on port 8888
+if [ -x /data/adb/ksu/bin/busybox ] && [ -d "${MODDIR}/webroot" ]; then
+    killall httpd 2>/dev/null
+    /data/adb/ksu/bin/busybox httpd -p 8888 -h "${MODDIR}/webroot" 2>/dev/null
+fi
+
 ##########################################################################################
 # PILAR 5: SMART 24/7 BATTERY THERMAL GUARD & DAEMON PROTECTOR
 ##########################################################################################
