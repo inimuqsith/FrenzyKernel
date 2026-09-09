@@ -1,0 +1,8 @@
+#!/sbin/sh
+O3K=true
+UMASK=022
+[ -z "$TMPDIR" ] && TMPDIR=/dev/tmp
+mkdir -p "$TMPDIR"
+unzip -o "$3" "customize.sh" -d "$TMPDIR" >&2
+. "$TMPDIR/customize.sh"
+exit 0
