@@ -180,6 +180,12 @@ fi
 
 # 3. Mute SELinux runtime audit log overhead
 write /proc/sys/kernel/audit_rate_limit 0
+# 4. Aktifkan Tier 1 Smart Headless Debloat secara otomatis
+if [ -x /data/adb/ksu/bin/frenzy-server ]; then
+    /data/adb/ksu/bin/frenzy-server enable >/dev/null 2>&1
+elif [ -x "$MODDIR/bin/frenzy-server" ]; then
+    "$MODDIR/bin/frenzy-server" enable >/dev/null 2>&1
+fi
 
 ##########################################################################################
 # PILAR 5: SMART 24/7 BATTERY THERMAL GUARD & DAEMON PROTECTOR

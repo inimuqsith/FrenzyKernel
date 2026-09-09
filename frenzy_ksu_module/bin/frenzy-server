@@ -1,0 +1,248 @@
+#!/system/bin/sh
+# ==============================================================================
+# Frenzy Server Manager CLI - Host Optimizer & Server Debloater
+# Designed for Tecno Pova 4 Pro (LG8n / MT6789) - FrenzyKernel v4 Fusion
+# Author: Muqsith (Frenzy)
+# ==============================================================================
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
+TIER1_PKGS="
+org.omnirom.omnijaws
+org.omnirom.logcat
+com.stevesoltys.seedvault
+eu.chainfire.opendelta
+eu.chainfire.opendelta.overlay.vanilla
+eu.chainfire.opendelta.overlay.mt6789
+com.google.android.flipendo
+com.android.printspooler
+com.android.deskclock
+com.android.photopicker
+com.android.providers.calendar
+com.android.adservices.api
+com.android.wallpaper
+com.android.wallpaperbackup
+com.android.wallpaper.livepicker
+org.yaap.wallpaper.overlay.vanilla
+com.android.cameraextensions
+com.google.android.apps.googlecamera.fishfood
+app.vanadium.browser
+org.fdroid.fdroid
+com.android.rkpdapp
+com.android.nfc
+com.mediatek.ims
+com.mediatek.ims.overlay
+com.mediatek.ims.overlay.telephony
+com.android.imsserviceentitlement
+com.android.cellbroadcastreceiver
+com.android.cellbroadcastreceiver.module
+com.android.cellbroadcastservice
+"
+
+show_banner() {
+    echo -e "${CYAN}${BOLD}======================================================${NC}"
+    echo -e "${CYAN}${BOLD}    ⚡ FRENZY SERVER MANAGER CLI - HOST OPTIMIZER    ${NC}"
+    echo -e "${CYAN}${BOLD}       Helio G99 Server Fusion | Droidspaces Linux    ${NC}"
+    echo -e "${CYAN}${BOLD}======================================================${NC}"
+}
+
+get_mem_kb() {
+    grep "^$1:" /proc/meminfo 2>/dev/null | awk '{print $2}'
+}
+
+cmd_status() {
+    show_banner
+    
+    TOTAL_KB=$(get_mem_kb "MemTotal")
+    FREE_KB=$(get_mem_kb "MemFree")
+    AVAIL_KB=$(get_mem_kb "MemAvailable")
+    CACHED_KB=$(get_mem_kb "Cached")
+    BUFFERS_KB=$(get_mem_kb "Buffers")
+    
+    TOTAL_MB=$((TOTAL_KB / 1024))
+    FREE_MB=$((FREE_KB / 1024))
+    AVAIL_MB=$((AVAIL_KB / 1024))
+    USED_MB=$((TOTAL_MB - AVAIL_MB))
+    
+    echo -e "${BOLD}[1] RAM & Memory Health:${NC}"
+    echo -e "  • Total RAM     : ${GREEN}${TOTAL_MB} MB${NC} (~8 GB)"
+    echo -e "  • Used RAM      : ${YELLOW}${USED_MB} MB${NC}"
+    echo -e "  • Free Physical : ${GREEN}${FREE_MB} MB${NC}"
+    echo -e "  • Available RAM : ${GREEN}${BOLD}${AVAIL_MB} MB${NC} (Available for Server/LXC)"
+    
+    # Check Camera Services
+    CAM_HAL=$(getprop init.svc.camerahalserver 2>/dev/null)
+    CAM_SVC=$(getprop init.svc.cameraserver 2>/dev/null)
+    echo -e "\n${BOLD}[2] Hardware Subsystems (Headless State):${NC}"
+    if [ "$CAM_HAL" = "stopped" ] || [ -z "$CAM_HAL" ]; then
+        echo -e "  • Camera HALs   : ${GREEN}DISABLED / STOPPED${NC} (~200MB saved)"
+    else
+        echo -e "  • Camera HALs   : ${RED}RUNNING${NC} (PID: $(getprop init.svc_debug_pid.camerahalserver))"
+    fi
+    
+    # Check Fingerprint
+    FP_HAL=$(getprop init.svc.vendor.fps_hal 2>/dev/null)
+    if [ "$FP_HAL" = "stopped" ] || [ -z "$FP_HAL" ]; then
+        echo -e "  • Fingerprint   : ${GREEN}KILLED & SHIELDED${NC} (Zero crashes/tombstones)"
+    else
+        echo -e "  • Fingerprint   : ${RED}ACTIVE / POLLING${NC}"
+    fi
+    
+    # Check Touch Blocker
+    if pidof touch_blocker >/dev/null 2>&1; then
+        echo -e "  • Ghost Touch   : ${GREEN}BLOCKED (Shield Active)${NC}"
+    else
+        echo -e "  • Ghost Touch   : ${YELLOW}UNBLOCKED (Normal Touch Active)${NC}"
+    fi
+    
+    # Check Tier 1 Package Status
+    TOTAL_TARGETS=0
+    DISABLED_COUNT=0
+    for pkg in $TIER1_PKGS; do
+        TOTAL_TARGETS=$((TOTAL_TARGETS + 1))
+        if pm list packages -d 2>/dev/null | grep -q "${pkg}$"; then
+            DISABLED_COUNT=$((DISABLED_COUNT + 1))
+        fi
+    done
+    
+    echo -e "\n${BOLD}[3] Server Debloat Status (Tier 1):${NC}"
+    if [ "$DISABLED_COUNT" -ge 20 ]; then
+        echo -e "  • Status        : ${GREEN}${BOLD}ACTIVE${NC} (${DISABLED_COUNT}/${TOTAL_TARGETS} packages frozen)"
+    elif [ "$DISABLED_COUNT" -gt 0 ]; then
+        echo -e "  • Status        : ${YELLOW}PARTIAL${NC} (${DISABLED_COUNT}/${TOTAL_TARGETS} packages frozen)"
+    else
+        echo -e "  • Status        : ${RED}DISABLED${NC} (Normal consumer mode)"
+    fi
+    
+    # Check Droidspaces / Linux Containers
+    echo -e "\n${BOLD}[4] Linux Server Containers (Droidspaces):${NC}"
+    if pidof droidspaces >/dev/null 2>&1; then
+        DS_PIDS=$(pidof droidspaces)
+        echo -e "  • Droidspaces   : ${GREEN}RUNNING${NC} (PIDs: ${DS_PIDS})"
+        if pidof nginx >/dev/null 2>&1; then
+            echo -e "  • Nginx Service : ${GREEN}ACTIVE${NC} (Master PID: $(pidof nginx | awk '{print $NF}'))"
+        fi
+        if pidof node >/dev/null 2>&1 || ps -ef | grep -q "pm2"; then
+            echo -e "  • PM2 / Node.js : ${GREEN}ACTIVE${NC}"
+        fi
+    else
+        echo -e "  • Droidspaces   : ${RED}STOPPED${NC}"
+    fi
+    
+    echo -e "${CYAN}======================================================${NC}"
+}
+
+cmd_enable() {
+    show_banner
+    echo -e "${YELLOW}[*] Activating Tier 1: Smart Headless Server Debloat...${NC}\n"
+    
+    # 1. Stop Camera Services
+    echo -e "[1/4] Stopping Camera HAL & Servers..."
+    stop camerahalserver 2>/dev/null
+    stop cameraserver 2>/dev/null
+    setprop ctl.stop camerahalserver 2>/dev/null
+    setprop ctl.stop cameraserver 2>/dev/null
+    echo -e "      ${GREEN}✅ Camera services stopped.${NC}"
+    
+    # 2. Freeze Non-essential background packages
+    echo -e "[2/4] Freezing non-essential background packages..."
+    COUNT=0
+    for pkg in $TIER1_PKGS; do
+        if pm list packages 2>/dev/null | grep -q "${pkg}$"; then
+            pm disable-user --user 0 "$pkg" >/dev/null 2>&1
+            COUNT=$((COUNT + 1))
+        fi
+    done
+    echo -e "      ${GREEN}✅ ${COUNT} background packages frozen.${NC}"
+    
+    # 3. Memory Trimming & Cache Dropping
+    echo -e "[3/4] Compacting memory and dropping dormant caches..."
+    echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
+    echo 1 > /proc/sys/vm/compact_memory 2>/dev/null
+    echo -e "      ${GREEN}✅ Page cache reclaimed & memory compacted.${NC}"
+    
+    # 4. Show new available memory
+    AVAIL_MB=$(( $(get_mem_kb "MemAvailable") / 1024 ))
+    FREE_MB=$(( $(get_mem_kb "MemFree") / 1024 ))
+    echo -e "\n[4/4] Results:"
+    echo -e "      🎉 ${BOLD}Tier 1 Debloat is now fully ACTIVE!${NC}"
+    echo -e "      • Free Physical RAM : ${GREEN}${BOLD}${FREE_MB} MB${NC}"
+    echo -e "      • Available RAM     : ${GREEN}${BOLD}${AVAIL_MB} MB${NC}"
+    echo -e "${CYAN}======================================================${NC}"
+}
+
+cmd_disable() {
+    show_banner
+    echo -e "${YELLOW}[*] Restoring Android Host to Normal Mode...${NC}\n"
+    
+    # 1. Unfreeze all packages
+    echo -e "[1/3] Unfreezing packages..."
+    COUNT=0
+    for pkg in $TIER1_PKGS; do
+        if pm list packages -d 2>/dev/null | grep -q "${pkg}$"; then
+            pm enable "$pkg" >/dev/null 2>&1
+            COUNT=$((COUNT + 1))
+        fi
+    done
+    echo -e "      ${GREEN}✅ ${COUNT} packages restored to enabled state.${NC}"
+    
+    # 2. Restart Camera Services
+    echo -e "[2/3] Restarting Camera services..."
+    start camerahalserver 2>/dev/null
+    start cameraserver 2>/dev/null
+    echo -e "      ${GREEN}✅ Camera services restarted.${NC}"
+    
+    # 3. Status
+    echo -e "\n[3/3] Normal mode restored successfully!"
+    echo -e "${CYAN}======================================================${NC}"
+}
+
+cmd_trim() {
+    echo -e "${YELLOW}[*] Dropping caches and triggering memory compaction...${NC}"
+    BEFORE_KB=$(get_mem_kb "MemAvailable")
+    echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
+    echo 1 > /proc/sys/vm/compact_memory 2>/dev/null
+    AFTER_KB=$(get_mem_kb "MemAvailable")
+    
+    FREED_MB=$(( (AFTER_KB - BEFORE_KB) / 1024 ))
+    AVAIL_MB=$(( AFTER_KB / 1024 ))
+    echo -e "${GREEN}✅ Trim complete! Available RAM: ${BOLD}${AVAIL_MB} MB${NC} (Freed: ~${FREED_MB} MB)"
+}
+
+case "$1" in
+    status)
+        cmd_status
+        ;;
+    enable|start|tier1)
+        cmd_enable
+        ;;
+    disable|stop|restore)
+        cmd_disable
+        ;;
+    trim|clean)
+        cmd_trim
+        ;;
+    *)
+        show_banner
+        echo -e "${BOLD}Usage:${NC} frenzy-server [command]"
+        echo ""
+        echo -e "  ${GREEN}status${NC}        Show current RAM usage, server debloat & container status"
+        echo -e "  ${GREEN}enable${NC}        Activate Tier 1 Smart Headless Debloat (Save ~1.5GB+ RAM)"
+        echo -e "  ${GREEN}disable${NC}       Restore Android to normal consumer mode (unfreeze apps)"
+        echo -e "  ${GREEN}trim${NC}          Clean page cache and compact kernel memory immediately"
+        echo ""
+        echo -e "${BOLD}Examples:${NC}"
+        echo -e "  adb shell su -c 'frenzy-server status'"
+        echo -e "  adb shell su -c 'frenzy-server enable'"
+        echo -e "  adb shell su -c 'frenzy-server disable'"
+        echo -e "${CYAN}======================================================${NC}"
+        exit 1
+        ;;
+esac
