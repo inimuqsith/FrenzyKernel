@@ -161,6 +161,9 @@ for dspaces_cgroup in /sys/fs/cgroup/cpuset/droidspaces /dev/cpuset/droidspaces;
     [ -d "$dspaces_cgroup" ] && [ -f "$dspaces_cgroup/cpus" ] && write "$dspaces_cgroup/cpus" "0-7"
 done
 
+# Buka akses driver Windows NT Synchronization (/dev/ntsync) untuk Winlator/Mobox/Wine
+[ -e /dev/ntsync ] && chmod 666 /dev/ntsync
+
 # 2. Server High-Throughput Networking Stack (TCP BBR & Fastopen)
 write /proc/sys/net/ipv4/tcp_fastopen 3
 write /proc/sys/net/ipv4/tcp_ecn 1
