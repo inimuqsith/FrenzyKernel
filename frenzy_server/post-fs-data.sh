@@ -37,3 +37,6 @@ if [ -f /vendor/bin/hw/vendor.fptool.fingerprint@2.0-service ]; then
     chcon u:object_r:hal_fingerprint_default_exec:s0 "${MODDIR}/bin/tiny_exit" 2>/dev/null
     mount -o bind "${MODDIR}/bin/tiny_exit" /vendor/bin/hw/vendor.fptool.fingerprint@2.0-service 2>/dev/null
 fi
+
+# 6. Ensure /dev/ntsync has 0666 permissions early
+[ -c /dev/ntsync ] && chmod 0666 /dev/ntsync 2>/dev/null

@@ -1,0 +1,360 @@
+#!/system/bin/sh
+# ==============================================================================
+# FrenzyServer CLI - All-in-One Linux Server Engine Controller
+# Optimized for Helio G99 (MT6789) - Tecno Pova 4 Pro
+# Author: Muqsith (Frenzy)
+# ==============================================================================
+
+MODDIR="/data/adb/modules/frenzy_server"
+[ ! -d "$MODDIR" ] && MODDIR="/data/adb/modules/frenzy_g99_server_fusion"
+
+TOUCH_BIN="${MODDIR}/bin/touch_blocker"
+[ ! -f "$TOUCH_BIN" ] && TOUCH_BIN="/data/adb/modules/frenzy_touch_blocker/bin/touch_blocker"
+TOUCH_LOG="/data/local/tmp/touch_blocker.log"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+TIER1_PKGS="
+org.omnirom.omnijaws
+org.omnirom.logcat
+com.stevesoltys.seedvault
+eu.chainfire.opendelta
+eu.chainfire.opendelta.overlay.vanilla
+eu.chainfire.opendelta.overlay.mt6789
+com.google.android.flipendo
+com.android.printspooler
+com.android.deskclock
+com.android.photopicker
+com.android.providers.calendar
+com.android.adservices.api
+com.android.wallpaper
+com.android.wallpaperbackup
+com.android.wallpaper.livepicker
+org.yaap.wallpaper.overlay.vanilla
+com.android.cameraextensions
+com.google.android.apps.googlecamera.fishfood
+app.vanadium.browser
+org.fdroid.fdroid
+com.android.rkpdapp
+com.android.nfc
+com.mediatek.ims
+com.mediatek.ims.overlay
+com.mediatek.ims.overlay.telephony
+com.android.imsserviceentitlement
+com.android.cellbroadcastreceiver
+com.android.cellbroadcastreceiver.module
+com.android.cellbroadcastservice
+"
+
+show_banner() {
+    echo -e "${CYAN}${BOLD}======================================================${NC}"
+    echo -e "${CYAN}${BOLD}    ⚡ FRENZYSERVER ALL-IN-ONE LINUX SERVER ENGINE   ${NC}"
+    echo -e "${CYAN}${BOLD}       Helio G99 (MT6789) | Droidspaces Host          ${NC}"
+    echo -e "${CYAN}${BOLD}======================================================${NC}"
+}
+
+get_mem_kb() {
+    grep "^$1:" /proc/meminfo 2>/dev/null | awk '{print $2}'
+}
+
+get_batt_temp() {
+    if [ -f /sys/class/power_supply/battery/temp ]; then
+        raw=$(cat /sys/class/power_supply/battery/temp)
+        echo $((raw / 10))
+    else
+        echo 0
+    fi
+}
+
+get_touch_event() {
+    TOUCH_EVENT=$(grep -A 5 -i "mtk-tpd" /proc/bus/input/devices 2>/dev/null | grep -E -o "event[0-9]+" | head -n 1)
+    [ -z "$TOUCH_EVENT" ] && TOUCH_EVENT="event3"
+    echo "$TOUCH_EVENT"
+}
+
+cmd_status() {
+    show_banner
+    
+    TOTAL_KB=$(get_mem_kb "MemTotal")
+    FREE_KB=$(get_mem_kb "MemFree")
+    AVAIL_KB=$(get_mem_kb "MemAvailable")
+    CACHED_KB=$(get_mem_kb "Cached")
+    
+    TOTAL_MB=$((TOTAL_KB / 1024))
+    FREE_MB=$((FREE_KB / 1024))
+    AVAIL_MB=$((AVAIL_KB / 1024))
+    USED_MB=$((TOTAL_MB - AVAIL_MB))
+    BATT_TEMP=$(get_batt_temp)
+    
+    echo -e "${BOLD}[1] RAM & Memory Health:${NC}"
+    echo -e "  • Total RAM     : ${GREEN}${TOTAL_MB} MB${NC} (~8 GB)"
+    echo -e "  • Used RAM      : ${YELLOW}${USED_MB} MB${NC}"
+    echo -e "  • Free Physical : ${GREEN}${FREE_MB} MB${NC}"
+    echo -e "  • Available RAM : ${GREEN}${BOLD}${AVAIL_MB} MB${NC} (Available for Server/LXC)"
+    echo -e "  • Battery Temp  : ${GREEN}${BATT_TEMP}°C${NC} (Smart Guard Limit: 47°C)"
+    
+    # Check Camera Services
+    CAM_HAL=$(getprop init.svc.camerahalserver 2>/dev/null)
+    echo -e "\n${BOLD}[2] Hardware Subsystems:${NC}"
+    if [ "$CAM_HAL" = "stopped" ] || [ -z "$CAM_HAL" ]; then
+        echo -e "  • Camera HALs   : ${GREEN}DISABLED / STOPPED${NC} (~200MB saved)"
+    else
+        echo -e "  • Camera HALs   : ${RED}RUNNING${NC}"
+    fi
+    
+    # Check Fingerprint
+    FP_HAL=$(getprop init.svc.vendor.fps_hal 2>/dev/null)
+    if [ "$FP_HAL" = "stopped" ] || [ -z "$FP_HAL" ]; then
+        echo -e "  • Fingerprint   : ${GREEN}KILLED & SHIELDED${NC} (No crash loops)"
+    else
+        echo -e "  • Fingerprint   : ${RED}ACTIVE / POLLING${NC}"
+    fi
+    
+    # Check Touch Blocker
+    if pidof touch_blocker >/dev/null 2>&1; then
+        echo -e "  • Ghost Touch   : ${GREEN}BLOCKED (PID: $(pidof touch_blocker))${NC}"
+    else
+        echo -e "  • Ghost Touch   : ${YELLOW}UNBLOCKED (Touch Active)${NC}"
+    fi
+    
+    # Check Tier 1 Package Status
+    TOTAL_TARGETS=0
+    DISABLED_COUNT=0
+    for pkg in $TIER1_PKGS; do
+        TOTAL_TARGETS=$((TOTAL_TARGETS + 1))
+        if pm list packages -d 2>/dev/null | grep -q "${pkg}$"; then
+            DISABLED_COUNT=$((DISABLED_COUNT + 1))
+        fi
+    done
+    
+    echo -e "\n${BOLD}[3] Headless Server Debloat (Tier 1):${NC}"
+    if [ "$DISABLED_COUNT" -ge 20 ]; then
+        echo -e "  • Status        : ${GREEN}${BOLD}ACTIVE${NC} (${DISABLED_COUNT}/${TOTAL_TARGETS} packages frozen)"
+    else
+        echo -e "  • Status        : ${YELLOW}INACTIVE${NC} (${DISABLED_COUNT}/${TOTAL_TARGETS} packages frozen)"
+    fi
+    
+    # Check Droidspaces / Linux Containers
+    echo -e "\n${BOLD}[4] Linux Containers (Droidspaces):${NC}"
+    if pidof droidspaces >/dev/null 2>&1; then
+        echo -e "  • Droidspaces   : ${GREEN}RUNNING${NC} (PIDs: $(pidof droidspaces))"
+        if pidof nginx >/dev/null 2>&1; then
+            echo -e "  • Nginx Service : ${GREEN}ACTIVE${NC}"
+        fi
+        if pidof node >/dev/null 2>&1 || ps -ef | grep -q "pm2"; then
+            echo -e "  • PM2 / Node.js : ${GREEN}ACTIVE${NC}"
+        fi
+    else
+        echo -e "  • Droidspaces   : ${RED}STOPPED${NC}"
+    fi
+    echo -e "${CYAN}======================================================${NC}"
+}
+
+cmd_enable_debloat() {
+    echo -e "${YELLOW}[*] Activating Tier 1: Smart Headless Server Debloat...${NC}"
+    stop camerahalserver 2>/dev/null
+    stop cameraserver 2>/dev/null
+    setprop ctl.stop camerahalserver 2>/dev/null
+    setprop ctl.stop cameraserver 2>/dev/null
+    
+    COUNT=0
+    for pkg in $TIER1_PKGS; do
+        if pm list packages 2>/dev/null | grep -q "${pkg}$"; then
+            pm disable-user --user 0 "$pkg" >/dev/null 2>&1
+            COUNT=$((COUNT + 1))
+        fi
+    done
+    
+    echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
+    echo 1 > /proc/sys/vm/compact_memory 2>/dev/null
+    echo -e "${GREEN}✅ Tier 1 Debloat ACTIVE: ${COUNT} apps frozen, Camera stopped.${NC}"
+}
+
+cmd_disable_debloat() {
+    echo -e "${YELLOW}[*] Restoring Android Host to Normal Mode...${NC}"
+    COUNT=0
+    for pkg in $TIER1_PKGS; do
+        if pm list packages -d 2>/dev/null | grep -q "${pkg}$"; then
+            pm enable "$pkg" >/dev/null 2>&1
+            COUNT=$((COUNT + 1))
+        fi
+    done
+    start camerahalserver 2>/dev/null
+    start cameraserver 2>/dev/null
+    echo -e "${GREEN}✅ Restored ${COUNT} apps and restarted Camera services.${NC}"
+}
+
+cmd_touch() {
+    sub="$1"
+    EV=$(get_touch_event)
+    PID=$(pidof touch_blocker 2>/dev/null)
+    case "$sub" in
+        off|block)
+            if [ -n "$PID" ]; then
+                echo -e "${YELLOW}[!] Touch is already BLOCKED (PID: $PID).${NC}"
+            else
+                [ -f "$TOUCH_BIN" ] && "$TOUCH_BIN" "/dev/input/$EV" >> "$TOUCH_LOG" 2>&1 &
+                sleep 1
+                echo -e "${GREEN}🛡️ Touchscreen BLOCKED on /dev/input/$EV (PID: $(pidof touch_blocker)).${NC}"
+            fi
+            ;;
+        on|unblock)
+            if [ -n "$PID" ]; then
+                kill -9 $PID 2>/dev/null
+                echo -e "${GREEN}✅ Touchscreen UNBLOCKED. Normal touch restored.${NC}"
+            else
+                echo -e "${YELLOW}[!] Touch is already UNBLOCKED.${NC}"
+            fi
+            ;;
+        toggle)
+            if [ -n "$PID" ]; then
+                cmd_touch "on"
+            else
+                cmd_touch "off"
+            fi
+            ;;
+        *)
+            if [ -n "$PID" ]; then
+                echo -e "Touch Status: ${RED}BLOCKED${NC} (PID: $PID, Device: $EV)"
+            else
+                echo -e "Touch Status: ${GREEN}UNBLOCKED${NC}"
+            fi
+            ;;
+    esac
+}
+
+cmd_trim() {
+    echo -e "${YELLOW}[*] Dropping caches and compacting memory...${NC}"
+    BEFORE_KB=$(get_mem_kb "MemAvailable")
+    echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
+    echo 1 > /proc/sys/vm/compact_memory 2>/dev/null
+    AFTER_KB=$(get_mem_kb "MemAvailable")
+    AVAIL_MB=$(( AFTER_KB / 1024 ))
+    FREED_MB=$(( (AFTER_KB - BEFORE_KB) / 1024 ))
+    echo -e "${GREEN}✅ Trim complete! Available RAM: ${BOLD}${AVAIL_MB} MB${NC} (Freed: ~${FREED_MB} MB)"
+}
+
+cmd_json() {
+    TOTAL_KB=$(get_mem_kb "MemTotal")
+    FREE_KB=$(get_mem_kb "MemFree")
+    AVAIL_KB=$(get_mem_kb "MemAvailable")
+    CACHED_KB=$(get_mem_kb "Cached")
+    BUFFERS_KB=$(get_mem_kb "Buffers")
+    TOTAL_MB=$((TOTAL_KB / 1024))
+    FREE_MB=$((FREE_KB / 1024))
+    AVAIL_MB=$((AVAIL_KB / 1024))
+    USED_MB=$((TOTAL_MB - AVAIL_MB))
+    CACHED_MB=$((CACHED_KB / 1024))
+    BATT_TEMP=$(get_batt_temp)
+    
+    # Touch status
+    TOUCH_PID=$(pidof touch_blocker 2>/dev/null)
+    TOUCH_BLOCKED="false"
+    [ -n "$TOUCH_PID" ] && TOUCH_BLOCKED="true"
+    
+    # Camera status
+    CAM_HAL=$(getprop init.svc.camerahalserver 2>/dev/null)
+    CAM_STOPPED="true"
+    [ "$CAM_HAL" = "running" ] && CAM_STOPPED="false"
+    
+    # FP status
+    FP_HAL=$(getprop init.svc.vendor.fps_hal 2>/dev/null)
+    FP_KILLED="true"
+    [ "$FP_HAL" = "running" ] && FP_KILLED="false"
+    
+    # Debloat count
+    TOTAL_TARGETS=0
+    DISABLED_COUNT=0
+    for pkg in $TIER1_PKGS; do
+        TOTAL_TARGETS=$((TOTAL_TARGETS + 1))
+        if pm list packages -d 2>/dev/null | grep -q "${pkg}$"; then
+            DISABLED_COUNT=$((DISABLED_COUNT + 1))
+        fi
+    done
+    DEBLOAT_ACTIVE="false"
+    [ "$DISABLED_COUNT" -ge 20 ] && DEBLOAT_ACTIVE="true"
+    
+    # Droidspaces
+    DS_RUNNING="false"
+    pidof droidspaces >/dev/null 2>&1 && DS_RUNNING="true"
+    NGINX_RUNNING="false"
+    pidof nginx >/dev/null 2>&1 && NGINX_RUNNING="true"
+    PM2_RUNNING="false"
+    (pidof node >/dev/null 2>&1 || ps -ef | grep -q "pm2") && PM2_RUNNING="true"
+    
+    cat << JSON
+{
+  "ram": {
+    "total_mb": ${TOTAL_MB},
+    "used_mb": ${USED_MB},
+    "free_mb": ${FREE_MB},
+    "avail_mb": ${AVAIL_MB},
+    "cached_mb": ${CACHED_MB}
+  },
+  "battery": {
+    "temp": ${BATT_TEMP}
+  },
+  "touch": {
+    "blocked": ${TOUCH_BLOCKED},
+    "pid": "${TOUCH_PID:-0}"
+  },
+  "camera": {
+    "stopped": ${CAM_STOPPED}
+  },
+  "fingerprint": {
+    "killed": ${FP_KILLED}
+  },
+  "debloat": {
+    "active": ${DEBLOAT_ACTIVE},
+    "disabled_count": ${DISABLED_COUNT},
+    "total_targets": ${TOTAL_TARGETS}
+  },
+  "droidspaces": {
+    "running": ${DS_RUNNING},
+    "nginx": ${NGINX_RUNNING},
+    "pm2": ${PM2_RUNNING}
+  }
+}
+JSON
+}
+
+case "$1" in
+    status)
+        cmd_status
+        ;;
+    enable|tier1)
+        cmd_enable_debloat
+        ;;
+    disable|restore)
+        cmd_disable_debloat
+        ;;
+    touch)
+        cmd_touch "$2"
+        ;;
+    trim|clean)
+        cmd_trim
+        ;;
+    json)
+        cmd_json
+        ;;
+    *)
+        show_banner
+        echo -e "${BOLD}Usage:${NC} frenzy-server [command]"
+        echo ""
+        echo -e "  ${GREEN}status${NC}          Show full system health, RAM & server state"
+        echo -e "  ${GREEN}enable${NC}          Activate Tier 1 Headless Server Debloat"
+        echo -e "  ${GREEN}disable${NC}         Restore Android to normal mode (unfreeze apps)"
+        echo -e "  ${GREEN}touch [on|off]${NC}  Control Touchscreen Ghost Shield"
+        echo -e "  ${GREEN}trim${NC}            Drop dormant caches & compact memory"
+        echo -e "  ${GREEN}json${NC}            Dump complete metrics in JSON format for WebUI"
+        echo -e "${CYAN}======================================================${NC}"
+        exit 1
+        ;;
+esac

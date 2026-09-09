@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>FrenzyServer Control Center</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="logo-icon">⚡</div>
+        <div>
+          <h1 class="title">FrenzyServer</h1>
+          <p class="subtitle">Helio G99 Server Engine • v3.0-Fusion</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span id="server-badge" class="badge badge-success">ONLINE</span>
+        <button id="btn-refresh" class="btn-icon" title="Refresh">🔄</button>
+      </div>
+    </header>
+
+    <!-- Metrics Cards Grid -->
+    <div class="grid grid-2">
+      <!-- RAM Metric Card -->
+      <div class="card metric-card">
+        <div class="card-header">
+          <span class="card-title">💾 RAM & Memory</span>
+          <button id="btn-trim" class="btn-chip">⚡ Quick Trim</button>
+        </div>
+        <div class="metric-main">
+          <span id="ram-avail" class="metric-value">-- MB</span>
+          <span class="metric-sub">Available for Server</span>
+        </div>
+        <div class="progress-bar-container">
+          <div id="ram-bar" class="progress-bar" style="width: 0%;"></div>
+        </div>
+        <div class="metric-details">
+          <span>Used: <strong id="ram-used">-- MB</strong></span>
+          <span>Free: <strong id="ram-free">-- MB</strong></span>
+          <span>Total: <strong id="ram-total">7.7 GB</strong></span>
+        </div>
+      </div>
+
+      <!-- Battery & Thermal Card -->
+      <div class="card metric-card">
+        <div class="card-header">
+          <span class="card-title">🌡️ Battery & Thermal</span>
+          <span id="guard-badge" class="badge badge-primary">24/7 Guard</span>
+        </div>
+        <div class="metric-main">
+          <span id="batt-temp" class="metric-value">--°C</span>
+          <span class="metric-sub">Battery Temperature</span>
+        </div>
+        <div class="thermal-status">
+          <div class="dot dot-success" id="temp-dot"></div>
+          <span id="temp-desc">Safe • Below 47°C throttle limit</span>
+        </div>
+        <div class="metric-details">
+          <span>SoC: <strong>Helio G99</strong></span>
+          <span>PPM Bypass: <strong>2.2 GHz</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Control Center Section -->
+    <h2 class="section-heading">🛠️ Server Controls</h2>
+
+    <!-- Debloat Control -->
+    <div class="card control-card">
+      <div class="control-info">
+        <div class="control-icon">🚀</div>
+        <div>
+          <div class="control-title">Headless Server Debloat (Tier 1)</div>
+          <div class="control-desc" id="debloat-desc">Freezes 29 bloatware apps & halts camera HALs</div>
+        </div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle-debloat">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <!-- Touch Blocker Control -->
+    <div class="card control-card">
+      <div class="control-info">
+        <div class="control-icon">🛡️</div>
+        <div>
+          <div class="control-title">Ghost-Touch Screen Shield</div>
+          <div class="control-desc" id="touch-desc">Blocks physical touchscreen inputs (anti-ghost touch)</div>
+        </div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle-touch">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <!-- Hardware Shields Status Card -->
+    <div class="card status-card">
+      <div class="card-header">
+        <span class="card-title">🧩 Hardware Shields</span>
+      </div>
+      <div class="status-list">
+        <div class="status-item">
+          <span class="status-label">Broken Fingerprint Sensor:</span>
+          <span id="fp-status" class="badge badge-success">KILLED & SHIELDED</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Camera HAL Daemons:</span>
+          <span id="cam-status" class="badge badge-success">HALTED</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Droidspaces Container (LXC):</span>
+          <span id="ds-status" class="badge badge-success">RUNNING</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">NTSync Game/Server Engine:</span>
+          <span class="badge badge-primary">0666 ACTIVE</span>
+        </div>
+      </div>
+      <div class="card-footer-actions">
+        <button id="btn-clean-tb" class="btn-action">🧹 Clean Crash Tombstones</button>
+      </div>
+    </div>
+
+    <!-- Live Terminal Console -->
+    <div class="card console-card">
+      <div class="console-header">
+        <span class="console-title">🖥️ Output Console</span>
+        <button id="btn-clear-log" class="btn-clear">Clear</button>
+      </div>
+      <pre id="console-output" class="console-output">> FrenzyServer WebUI initialized.
+> Ready for commands.</pre>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>FrenzyServer v3.0-Fusion • Kernel 5.10</span>
+      <span>Engineered by Muqsith</span>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

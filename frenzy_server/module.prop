@@ -1,0 +1,8 @@
+id=frenzy_server
+name=FrenzyServer
+version=v3.0-Fusion
+versionCode=300
+author=Muqsith & FrenzyKernel
+description=All-in-One Linux Server Engine: G99 Optimization, Droidspaces Shield, Touch Blocker, FP Killer & Headless Debloat with WebUI.
+web=true
+action=true

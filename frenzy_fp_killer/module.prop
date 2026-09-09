@@ -1,6 +1,0 @@
-id=frenzy_fp_killer
-name=Frenzy Fingerprint Killer
-version=v1.0
-versionCode=100
-author=Muqsith (Frenzy)
-description=Permanently kills broken fingerprint sensor: unloads tran_fp, masks HAL & features, prevents crashes & tombstones.
