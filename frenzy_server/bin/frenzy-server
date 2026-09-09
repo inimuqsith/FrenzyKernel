@@ -109,9 +109,9 @@ cmd_help() {
     echo -e "  ${GREEN}help${NC}                    Show this help manual and usage guide"
     echo -e "  ${GREEN}json${NC}                    Dump complete system metrics in JSON format (for WebUI/API)\n"
     echo -e "${BOLD}SERVER MODES (TIERS):${NC}"
-    echo -e "  ${GREEN}mode normal${NC}             Restore standard phone mode (unfreeze launcher & apps)"
+    echo -e "  ${GREEN}mode normal${NC}             Restore standard phone mode (unfreeze launcher, systemui & apps)"
     echo -e "  ${GREEN}mode tier1${NC}              Activate Tier 1 Smart Debloat (~1.5GB RAM saved, keeps UI)"
-    echo -e "  ${GREEN}mode tier2${NC}              Activate Tier 2 Appliance Kiosk (WebUI on screen, ~2.5GB saved)\n"
+    echo -e "  ${GREEN}mode tier2${NC}              Activate Tier 2 Extreme Headless (Zero GUI, >5.5GB RAM for Server)\n"
     echo -e "${BOLD}INTEGRATED SERVICES:${NC}"
     echo -e "  ${GREEN}vpn status${NC}              Check Tailscale VPN tunnel and IP address"
     echo -e "  ${GREEN}vpn connect${NC}             Connect Tailscale VPN tunnel (broadcast)"
@@ -162,8 +162,8 @@ cmd_status() {
     echo -e "\n${BOLD}[2] Server Mode (Current):${NC}"
     case "$MODE" in
         tier2)
-            echo -e "  • Active Mode   : ${CYAN}${BOLD}TIER 2 (Appliance Kiosk Mode)${NC}"
-            echo -e "  • Screen State  : Dedicated FrenzyServer WebUI Display"
+            echo -e "  • Active Mode   : ${CYAN}${BOLD}TIER 2 (Extreme Headless Server)${NC}"
+            echo -e "  • Screen State  : Deep Sleep (Zero GUI / Controlled via PC)"
             ;;
         tier1)
             echo -e "  • Active Mode   : ${GREEN}${BOLD}TIER 1 (Smart Headless Debloat)${NC}"
@@ -258,52 +258,70 @@ cmd_mode() {
             echo -e "${GREEN}✅ TIER 1 ACTIVE: ${COUNT} apps frozen, Camera halted, UI preserved.${NC}"
             ;;
             
-        tier2)
-            echo -e "${YELLOW}[*] Switching to TIER 2: Appliance Kiosk Mode...${NC}"
+        tier2|extreme|headless)
+            echo -e "${CYAN}[*] Switching to TIER 2: EXTREME HEADLESS SERVER MODE...${NC}"
             
-            # 1. First ensure Tier 1 debloat is in place
+            # 1. Stop Camera HALs & freeze all Tier 1 bloat
             stop camerahalserver 2>/dev/null
             stop cameraserver 2>/dev/null
+            setprop ctl.stop camerahalserver 2>/dev/null
+            setprop ctl.stop cameraserver 2>/dev/null
             for pkg in $TIER1_PKGS; do
                 pm disable-user --user 0 "$pkg" >/dev/null 2>&1
             done
             
-            # 2. Freeze Launcher3
+            # 2. Freeze Android Graphical Shell (Launcher3 & SystemUI)
             echo -e "[*] Freezing com.android.launcher3 (~350MB RAM)..."
             pm disable-user --user 0 com.android.launcher3 >/dev/null 2>&1
             
-            # 3. Enable 3-button navigation overlay (◀ ● ■) & hide status bar only
-            cmd overlay enable com.android.internal.systemui.navbar.threebutton 2>/dev/null
-            settings put global policy_control immersive.status=* 2>/dev/null
+            echo -e "[*] Freezing com.android.systemui (~400MB RAM)..."
+            pm disable-user --user 0 com.android.systemui >/dev/null 2>&1
+            killall com.android.systemui 2>/dev/null
             
-            # 4. Ensure Web Server is running on port 8888
+            # 3. Ensure Essential 24/7 Server Services
+            # Touchscreen Ghost Shield
+            cmd_touch "block" >/dev/null 2>&1
+            
+            # Web Server on port 8888 (for PC browser dashboard)
             cmd_web "start" >/dev/null 2>&1
             
-            # 5. Launch Kiosk WebUI directly on physical display
-            echo -e "[*] Launching FrenzyServer WebUI on physical display..."
-            am start -n com.rifsxd.ksunext/.ui.webui.WebUIActivity -d "kernelsu://webui/frenzy_server" >/dev/null 2>&1 || am start -n com.rifsxd.ksunext/.ui.MainActivity >/dev/null 2>&1
+            # Tailscale VPN Keepalive
+            if ! ip link show tun1 >/dev/null 2>&1; then
+                cmd_vpn "connect" >/dev/null 2>&1
+            fi
             
+            # 4. Turn off / sleep physical display (saves power, zero heat, zero burn-in)
+            input keyevent 26 2>/dev/null
+            
+            # 5. Drop caches & compact kernel memory
             echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
             echo 1 > /proc/sys/vm/compact_memory 2>/dev/null
             
             AVAIL_MB=$(( $(get_mem_kb "MemAvailable") / 1024 ))
-            echo -e "${GREEN}🎉 TIER 2 APPLIANCE KIOSK ACTIVE!${NC}"
-            echo -e "   • Available RAM : ${GREEN}${BOLD}${AVAIL_MB} MB${NC}"
-            echo -e "   • Screen State  : FrenzyServer WebUI Kiosk (On-screen Back Button Active)"
-            echo -e "   • LAN Access    : http://$(ip -4 addr show wlan0 2>/dev/null | grep -oE "inet [0-9.]+" | awk '{print $2}'):8888"
+            WLAN_IP=$(ip -4 addr show wlan0 2>/dev/null | grep -oE "inet [0-9.]+" | awk '{print $2}')
+            VPN_IP=$(get_vpn_ip)
+            echo -e "${GREEN}🎉 TIER 2 EXTREME HEADLESS ACTIVE!${NC}"
+            echo -e "   • Available RAM  : ${GREEN}${BOLD}${AVAIL_MB} MB${NC} (>5.5 GB dedicated to Linux/Server)"
+            echo -e "   • Android GUI    : Completely Frozen (Zero GUI Overhead)"
+            echo -e "   • Display State  : Screen Sleeping (Controlled 100% via PC)"
+            echo -e "   • PC LAN Access  : http://${WLAN_IP:-127.0.0.1}:8888"
+            [ -n "$VPN_IP" ] && echo -e "   • Tailscale Web  : http://${VPN_IP}:8888"
+            echo -e "   • LXC Container  : Droidspaces Debian 13 ACTIVE"
             ;;
             
         normal|disable|restore)
             echo -e "${YELLOW}[*] Restoring to NORMAL Consumer Phone Mode...${NC}"
             
-            # Unfreeze Launcher3
+            # 1. Unfreeze Launcher3 & SystemUI
             pm enable com.android.launcher3 >/dev/null 2>&1
+            pm enable com.android.systemui >/dev/null 2>&1
+            am start-service -n com.android.systemui/.SystemUIService >/dev/null 2>&1
             
-            # Restore navigation overlay & system bars
-            cmd overlay disable com.android.internal.systemui.navbar.threebutton 2>/dev/null
+            # 2. Wake screen
+            input keyevent 224 2>/dev/null
             settings put global policy_control null 2>/dev/null
             
-            # Unfreeze all Tier 1 packages
+            # 3. Unfreeze all Tier 1 packages
             COUNT=0
             for pkg in $TIER1_PKGS; do
                 if pm list packages -d 2>/dev/null | grep -q "${pkg}$"; then
@@ -312,14 +330,16 @@ cmd_mode() {
                 fi
             done
             
-            # Restart camera
+            # 4. Restart camera
             start camerahalserver 2>/dev/null
             start cameraserver 2>/dev/null
             
-            # Bring home screen up
+            # 5. Bring home screen up
             am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null 2>&1
             
-            echo -e "${GREEN}✅ Normal mode restored! Launcher & ${COUNT} apps re-enabled.${NC}"
+            AVAIL_MB=$(( $(get_mem_kb "MemAvailable") / 1024 ))
+            echo -e "${GREEN}✅ Normal mode restored! Launcher, SystemUI & ${COUNT} apps re-enabled.${NC}"
+            echo -e "   • Available RAM : ${AVAIL_MB} MB"
             ;;
             
         *)

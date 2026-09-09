@@ -110,8 +110,8 @@ const elBtnTrim = document.getElementById("btn-trim");
 const elBtnCleanTb = document.getElementById("btn-clean-tb");
 const elBtnClearLog = document.getElementById("btn-clear-log");
 
-const elBtnScreenBack = document.getElementById("btn-screen-back");
-const elBtnScreenHome = document.getElementById("btn-screen-home");
+const elBtnScreenTrim = document.getElementById("btn-screen-trim");
+const elBtnScreenRefresh = document.getElementById("btn-screen-refresh");
 const elBtnScreenNormal = document.getElementById("btn-screen-normal");
 
 let currentVpnConnected = false;
@@ -127,9 +127,9 @@ function updateModeUI(mode) {
   
   if (mode === "tier2") {
     elBtnModeTier2.classList.add("active");
-    elModeBadge.textContent = "TIER 2 (KIOSK)";
+    elModeBadge.textContent = "TIER 2 (EXTREME)";
     elModeBadge.className = "badge badge-primary";
-    elModeDesc.textContent = "Tier 2: Launcher3 frozen, status bars hidden. WebUI is the sole screen display.";
+    elModeDesc.textContent = "Tier 2: Extreme Headless Server. GUI & SystemUI frozen, display sleeping, maximum RAM (>5.5GB) dedicated to Droidspaces & Minecraft. Controlled 100% via PC.";
   } else if (mode === "tier1") {
     elBtnModeTier1.classList.add("active");
     elModeBadge.textContent = "TIER 1";
@@ -278,13 +278,13 @@ elBtnModeTier1.addEventListener("click", async () => {
 });
 
 elBtnModeTier2.addEventListener("click", async () => {
-  appendLog("Switching to TIER 2 (Appliance Kiosk)...");
-  toast("Activating Tier 2 Kiosk Display...");
+  appendLog("Switching to TIER 2 (Extreme Headless Server)...");
+  toast("Activating Tier 2 Extreme...");
   const res = await exec("frenzy-server mode tier2");
   appendLog(res.stdout);
   updateModeUI("tier2");
   await refreshMetrics();
-  toast("Tier 2 Kiosk active!");
+  toast("Tier 2 Extreme active! (>5.5GB RAM free)");
 });
 
 // Tailscale Controls
@@ -373,33 +373,34 @@ elBtnClearLog.addEventListener("click", () => {
   elConsole.textContent = "> Console cleared.";
 });
 
-// On-Screen Kiosk Navigation Handlers
-if (elBtnScreenBack) {
-  elBtnScreenBack.addEventListener("click", async () => {
-    appendLog("Sending Android Back keyevent (4)...");
-    toast("◀ Back");
-    await exec("frenzy-server back");
+// Quick Action Bar Handlers (For PC & Web Dashboard)
+if (elBtnScreenTrim) {
+  elBtnScreenTrim.addEventListener("click", async () => {
+    appendLog("Executing Quick Trim (drop_caches & compact_memory)...");
+    toast("⚡ Trimming Memory...");
+    const res = await exec("frenzy-server trim");
+    appendLog(res.stdout);
+    await refreshMetrics();
+    toast("RAM trimmed & compacted!");
   });
 }
 
-if (elBtnScreenHome) {
-  elBtnScreenHome.addEventListener("click", async () => {
-    appendLog("Refocusing FrenzyServer WebUI...");
-    toast("🏠 WebUI Focused");
-    await exec("frenzy-server home");
+if (elBtnScreenRefresh) {
+  elBtnScreenRefresh.addEventListener("click", async () => {
+    toast("🔄 Refreshing metrics...");
     await refreshMetrics();
   });
 }
 
 if (elBtnScreenNormal) {
   elBtnScreenNormal.addEventListener("click", async () => {
-    appendLog("Exiting Kiosk & Restoring Normal Mode...");
-    toast("Exiting Kiosk Mode...");
+    appendLog("Restoring Android Consumer Phone Mode...");
+    toast("Restoring Normal Mode...");
     const res = await exec("frenzy-server mode normal");
     appendLog(res.stdout);
     updateModeUI("normal");
     await refreshMetrics();
-    toast("Normal mode restored!");
+    toast("Normal phone mode restored!");
   });
 }
 

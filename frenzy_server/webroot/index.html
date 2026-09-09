@@ -23,19 +23,19 @@
       </div>
     </header>
 
-    <!-- On-Screen Display Navigation Dock (For Kiosk & Screen Control) -->
+    <!-- Server Quick Actions Bar (For PC / Web Remote Control) -->
     <div class="kiosk-nav-bar" id="kiosk-nav-bar">
-      <button id="btn-screen-back" class="btn-nav primary" title="Send Android Back KeyEvent">
-        <span class="nav-icon">◀</span>
-        <span class="nav-text">Back</span>
+      <button id="btn-screen-trim" class="btn-nav primary" title="Drop Caches & Compact RAM">
+        <span class="nav-icon">⚡</span>
+        <span class="nav-text">Quick Trim</span>
       </button>
-      <button id="btn-screen-home" class="btn-nav" title="Focus FrenzyServer Dashboard">
-        <span class="nav-icon">🏠</span>
-        <span class="nav-text">WebUI</span>
+      <button id="btn-screen-refresh" class="btn-nav" title="Refresh Live Server Metrics">
+        <span class="nav-icon">🔄</span>
+        <span class="nav-text">Refresh Data</span>
       </button>
-      <button id="btn-screen-normal" class="btn-nav warning" title="Exit Kiosk / Return to Normal Mode">
+      <button id="btn-screen-normal" class="btn-nav warning" title="Exit Headless & Restore Android Phone Mode">
         <span class="nav-icon">📱</span>
-        <span class="nav-text">Exit Kiosk</span>
+        <span class="nav-text">Restore Normal</span>
       </button>
     </div>
 
@@ -48,7 +48,7 @@
       <div class="segmented-control">
         <button class="seg-btn" data-mode="normal" id="btn-mode-normal">Normal</button>
         <button class="seg-btn active" data-mode="tier1" id="btn-mode-tier1">Tier 1 (Debloat)</button>
-        <button class="seg-btn" data-mode="tier2" id="btn-mode-tier2">Tier 2 (Kiosk)</button>
+        <button class="seg-btn" data-mode="tier2" id="btn-mode-tier2">Tier 2 (Extreme)</button>
       </div>
       <div id="mode-description" class="mode-desc-text">
         Tier 1: 29 bloat apps frozen & camera HAL halted. Full Android UI preserved.
