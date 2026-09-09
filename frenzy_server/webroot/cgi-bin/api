@@ -42,6 +42,14 @@ case "$CMD" in
     ds_restart)
         frenzy-server droidspaces restart
         ;;
+    back)
+        input keyevent 4
+        echo '{"status":"ok","action":"back"}'
+        ;;
+    home)
+        am start -n com.rifsxd.ksunext/.ui.webui.WebUIActivity -d "kernelsu://webui/frenzy_server" >/dev/null 2>&1 || am start -n com.rifsxd.ksunext/.ui.MainActivity >/dev/null 2>&1
+        echo '{"status":"ok","action":"home"}'
+        ;;
     clean_tb)
         rm -f /data/tombstones/*fingerprint* 2>/dev/null
         echo '{"status":"ok","message":"Tombstones cleaned"}'

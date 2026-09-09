@@ -110,6 +110,10 @@ const elBtnTrim = document.getElementById("btn-trim");
 const elBtnCleanTb = document.getElementById("btn-clean-tb");
 const elBtnClearLog = document.getElementById("btn-clear-log");
 
+const elBtnScreenBack = document.getElementById("btn-screen-back");
+const elBtnScreenHome = document.getElementById("btn-screen-home");
+const elBtnScreenNormal = document.getElementById("btn-screen-normal");
+
 let currentVpnConnected = false;
 
 function appendLog(msg) {
@@ -368,6 +372,36 @@ elBtnRefresh.addEventListener("click", async () => {
 elBtnClearLog.addEventListener("click", () => {
   elConsole.textContent = "> Console cleared.";
 });
+
+// On-Screen Kiosk Navigation Handlers
+if (elBtnScreenBack) {
+  elBtnScreenBack.addEventListener("click", async () => {
+    appendLog("Sending Android Back keyevent (4)...");
+    toast("◀ Back");
+    await exec("frenzy-server back");
+  });
+}
+
+if (elBtnScreenHome) {
+  elBtnScreenHome.addEventListener("click", async () => {
+    appendLog("Refocusing FrenzyServer WebUI...");
+    toast("🏠 WebUI Focused");
+    await exec("frenzy-server home");
+    await refreshMetrics();
+  });
+}
+
+if (elBtnScreenNormal) {
+  elBtnScreenNormal.addEventListener("click", async () => {
+    appendLog("Exiting Kiosk & Restoring Normal Mode...");
+    toast("Exiting Kiosk Mode...");
+    const res = await exec("frenzy-server mode normal");
+    appendLog(res.stdout);
+    updateModeUI("normal");
+    await refreshMetrics();
+    toast("Normal mode restored!");
+  });
+}
 
 // Init
 window.addEventListener("DOMContentLoaded", () => {

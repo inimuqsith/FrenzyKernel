@@ -125,9 +125,13 @@ cmd_help() {
     echo -e "  ${GREEN}trim${NC}                    Drop Linux page caches & compact kernel memory"
     echo -e "  ${GREEN}fp clean${NC}                Delete crash dump tombstones from storage"
     echo -e "  ${GREEN}web [start|stop|status]${NC} Manage local WebUI HTTP server on port 8888\n"
+    echo -e "${BOLD}NAVIGATION & DISPLAY CONTROLS:${NC}"
+    echo -e "  ${GREEN}back${NC}                    Send Android Back keyevent (4) to screen"
+    echo -e "  ${GREEN}home${NC}                    Refocus FrenzyServer WebUI dashboard on screen\n"
     echo -e "${BOLD}EXAMPLES:${NC}"
     echo -e "  adb shell su -c 'frenzy-server status'"
     echo -e "  adb shell su -c 'frenzy-server mode tier2'"
+    echo -e "  adb shell su -c 'frenzy-server back'"
     echo -e "  adb shell su -c 'frenzy-server vpn connect'"
     echo -e "  adb shell su -c 'frenzy-server trim'"
     echo -e "${CYAN}======================================================${NC}"
@@ -268,15 +272,16 @@ cmd_mode() {
             echo -e "[*] Freezing com.android.launcher3 (~350MB RAM)..."
             pm disable-user --user 0 com.android.launcher3 >/dev/null 2>&1
             
-            # 3. Hide system bars (immersive full screen)
-            settings put global policy_control immersive.full=* 2>/dev/null
+            # 3. Enable 3-button navigation overlay (◀ ● ■) & hide status bar only
+            cmd overlay enable com.android.internal.systemui.navbar.threebutton 2>/dev/null
+            settings put global policy_control immersive.status=* 2>/dev/null
             
             # 4. Ensure Web Server is running on port 8888
             cmd_web "start" >/dev/null 2>&1
             
-            # 5. Launch Kiosk WebUI on physical display
+            # 5. Launch Kiosk WebUI directly on physical display
             echo -e "[*] Launching FrenzyServer WebUI on physical display..."
-            am start -n com.rifsxd.ksunext/.ui.MainActivity >/dev/null 2>&1
+            am start -n com.rifsxd.ksunext/.ui.webui.WebUIActivity -d "kernelsu://webui/frenzy_server" >/dev/null 2>&1 || am start -n com.rifsxd.ksunext/.ui.MainActivity >/dev/null 2>&1
             
             echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
             echo 1 > /proc/sys/vm/compact_memory 2>/dev/null
@@ -284,7 +289,7 @@ cmd_mode() {
             AVAIL_MB=$(( $(get_mem_kb "MemAvailable") / 1024 ))
             echo -e "${GREEN}🎉 TIER 2 APPLIANCE KIOSK ACTIVE!${NC}"
             echo -e "   • Available RAM : ${GREEN}${BOLD}${AVAIL_MB} MB${NC}"
-            echo -e "   • Screen State  : FrenzyServer WebUI Kiosk"
+            echo -e "   • Screen State  : FrenzyServer WebUI Kiosk (On-screen Back Button Active)"
             echo -e "   • LAN Access    : http://$(ip -4 addr show wlan0 2>/dev/null | grep -oE "inet [0-9.]+" | awk '{print $2}'):8888"
             ;;
             
@@ -293,6 +298,10 @@ cmd_mode() {
             
             # Unfreeze Launcher3
             pm enable com.android.launcher3 >/dev/null 2>&1
+            
+            # Restore navigation overlay & system bars
+            cmd overlay disable com.android.internal.systemui.navbar.threebutton 2>/dev/null
+            settings put global policy_control null 2>/dev/null
             
             # Unfreeze all Tier 1 packages
             COUNT=0
@@ -306,9 +315,6 @@ cmd_mode() {
             # Restart camera
             start camerahalserver 2>/dev/null
             start cameraserver 2>/dev/null
-            
-            # Restore system bars
-            settings put global policy_control null 2>/dev/null
             
             # Bring home screen up
             am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null 2>&1
@@ -601,6 +607,14 @@ case "$1" in
         else
             cmd_status
         fi
+        ;;
+    back|nav)
+        input keyevent 4
+        echo -e "${GREEN}◀ Android Back keyevent sent.${NC}"
+        ;;
+    home)
+        am start -n com.rifsxd.ksunext/.ui.webui.WebUIActivity -d "kernelsu://webui/frenzy_server" >/dev/null 2>&1 || am start -n com.rifsxd.ksunext/.ui.MainActivity >/dev/null 2>&1
+        echo -e "${GREEN}🏠 Returned to FrenzyServer WebUI.${NC}"
         ;;
     json)
         cmd_json

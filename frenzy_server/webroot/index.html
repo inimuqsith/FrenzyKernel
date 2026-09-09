@@ -23,6 +23,22 @@
       </div>
     </header>
 
+    <!-- On-Screen Display Navigation Dock (For Kiosk & Screen Control) -->
+    <div class="kiosk-nav-bar" id="kiosk-nav-bar">
+      <button id="btn-screen-back" class="btn-nav primary" title="Send Android Back KeyEvent">
+        <span class="nav-icon">◀</span>
+        <span class="nav-text">Back</span>
+      </button>
+      <button id="btn-screen-home" class="btn-nav" title="Focus FrenzyServer Dashboard">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-text">WebUI</span>
+      </button>
+      <button id="btn-screen-normal" class="btn-nav warning" title="Exit Kiosk / Return to Normal Mode">
+        <span class="nav-icon">📱</span>
+        <span class="nav-text">Exit Kiosk</span>
+      </button>
+    </div>
+
     <!-- Mode Selector Card -->
     <div class="card mode-card">
       <div class="card-header">
