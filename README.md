@@ -6,15 +6,16 @@
 ![Standard](https://img.shields.io/badge/Architecture-Android%20GKI%205.10-success?style=for-the-badge&logo=android)
 ![Target](https://img.shields.io/badge/Tested%20On-Tecno%20Pova%204%20Pro-orange?style=for-the-badge&logo=android)
 ![Arch](https://img.shields.io/badge/Arch-AArch64%20(ARM64)-red?style=for-the-badge)
+![Root](https://img.shields.io/badge/Built--in%20Root-KernelSU--Next%20v3.3.0-green?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-GPL--2.0-yellow?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Active%20%7C%20Production%20Ready-brightgreen?style=for-the-badge)
 
-**High-Performance Android Generic Kernel Image (GKI 5.10) & Headless Server Engine**  
-*A pure Android Generic Kernel Image (Linux 5.10 GKI) engineered for 24/7 Linux Server Hosting (Droidspaces LXC), Gaming Emulation, Hardware Shielding, and Enterprise-Grade Stability. Tested on Tecno Pova 4 Pro.*
+**High-Performance Android Generic Kernel Image (GKI 5.10) for Linux Server Hosting & Containerization**  
+*A pure Android Generic Kernel Image (Linux 5.10 GKI) featuring Google BBRv3 backport, in-kernel NTSync driver, build-time /proc/config.gz cloaking, full LXC/Docker namespaces & CGroups, KernelSU-Next v3.3.0 integration, and Clang ThinLTO. Tested exclusively on Tecno Pova 4 Pro.*
 
 [Overview](#-overview) •
-[Core Pillars](#-core-pillars) •
-[FrenzyServer WebUI & Engine](#-frenzyserver-engine--webui) •
+[Core Kernel Architecture](#-core-kernel-architecture) •
+[Userspace Companion Module](#-recommended-userspace-companion-frenzyserverksu) •
 [Building](#-building-the-kernel) •
 [Installation](#-installation) •
 [Credits](#-credits--acknowledgments)
@@ -25,48 +26,98 @@
 
 ## 📖 Overview
 
-**FrenzyKernel** is a heavily enhanced, performance-optimized Linux 5.10 kernel strictly adhering to the **Android Generic Kernel Image (GKI)** standard. Because it is a true universal **GKI 5.10** kernel, it is architecture-compliant with any Android device running the common GKI 5.10 kernel. Development, validation, and real-world testing have been conducted on the **Tecno Pova 4 Pro (`LG8n`)**.
+**FrenzyKernel** is an enterprise-grade Linux 5.10 kernel adhering strictly to the universal **Android Generic Kernel Image (GKI)** standard (`gki_defconfig`).
 
-Unlike conventional smartphone kernels that prioritize aggressive thermal throttling over continuous throughput, FrenzyKernel transforms Android GKI devices into enterprise-grade **24/7 Linux Micro-Servers & Appliances**, capable of hosting full Linux distributions (Debian 13 / Ubuntu via Droidspaces LXC), Minecraft servers, Node.js applications, databases, and VPN meshes—while remaining a smooth, ultra-responsive daily driver phone when needed.
+Unlike conventional smartphone kernels optimized solely for conservative handheld use, FrenzyKernel transforms Android GKI devices into **high-performance Linux host nodes**. Built directly into the kernel source are the necessary drivers, subsystems, and kernel patches to run native Linux containers (LXC, Docker, Droidspaces), enterprise network stacks (Google BBRv3, CAKE), low-latency synchronization primitives (NTSync for Wine/Proton), and embedded root orchestration (KernelSU-Next).
 
----
-
-## 🚀 Core Pillars
-
-### 1. Scheduler & Performance Optimization
-- **CFS Granularity Tuning**: Fine-tuned `sched_latency_ns` (4ms) and `sched_min_granularity_ns` (750µs) for minimal frame drop and ultra-fast task switching.
-- **UCLAMP Instant Ramp-Up**: Configured `sched_util_clamp_min_default = 50` with `up_rate_limit_us = 0` across clusters, guaranteeing instantaneous frequency ramp-up under burst workloads.
-- **Sustained Throughput Scaling**: Guarantees sustained CPU performance under heavy multi-tasking without premature governor down-scaling.
-- **Advanced Networking**: Defaults to **TCP BBRv3** congestion control paired with **CAKE queue discipline** (`sch_cake`) and Fast Open (`tcp_fastopen = 3`) for minimal latency and zero bufferbloat.
-
-### 2. Containerization & Virtualization Engine
-- **Full LXC / Namespaces Support**: Completely enabled CGroups v1 & v2 hierarchies, PID/mount/network namespaces, and user namespace isolation.
-- **Droidspaces Container Host**: Out-of-the-box support for hosting Debian 13 (Trixie), Ubuntu, and Arch Linux rootfs directly on device.
-- **NTSync Synchronization Driver**: Built-in `/dev/ntsync` kernel synchronization primitives, providing high-performance NT fast synchronization for Wine, Proton, Windows emulation, and database engines.
-
-### 3. Hardware Shielding & Resilience
-- **Touchscreen Ghost-Touch Shield**: Dedicated hardware-level `EVIOCGRAB` input interceptor (`touch_blocker`) isolating faulty digitizers and eliminating ghost touch inputs.
-- **Hardware Display Backlight Lock**: In headless server mode (Tier 2), the physical LCD backlight is locked via kernel sysfs (`chmod 000`) to absolute zero emission, preventing heat, power drain, and display burn-in during 24/7 continuous operation.
+> [!NOTE]
+> **Validation Device**: While architecturally compatible with devices running the Android 12 GKI 5.10 common kernel, FrenzyKernel is developed, validated, and rigorously tested on the **Tecno Pova 4 Pro (`LG8n`)**.
 
 ---
 
-## 🎛️ Recommended Companion: FrenzyServer (KernelSU)
+## 🚀 Core Kernel Architecture
 
-For maximum performance, hardware protection, and 24/7 headless server orchestration, pair FrenzyKernel with its official companion root module:
+FrenzyKernel incorporates core subsystems, backports, and kernel drivers compiled directly into the kernel image:
 
-👉 **[FrenzyServerKSU](https://github.com/inimuqsith/FrenzyServerKSU)** — *All-in-One Headless Android Linux Server Engine, Remote WebUI & Hardware Optimizer (Exclusively for KernelSU).*
+```
++-------------------------------------------------------------------------+
+|                        ⚡ FRENZYKERNEL ARCHITECTURE                     |
++-------------------------------------------------------------------------+
+|  [Pillar 1] Build-Time Security & Dynamic /proc/config.gz Cloaking      |
+|  [Pillar 2] In-Kernel Hardware Drivers & NT Emulation (NTSync, KSU)     |
+|  [Pillar 3] Containerization & Virtualization Engine (LXC, Docker, DS) |
+|  [Pillar 4] Next-Gen Kernel Networking & Firewall (BBRv3, CAKE, IPSet)  |
+|  [Pillar 5] Scheduler Architecture & Compiler Tuning (PELT 12ms, LTO)   |
++-------------------------------------------------------------------------+
+```
 
-### Why Pair FrenzyKernel with FrenzyServer?
-FrenzyServer integrates multiple specialized KernelSU module forks into a unified daemon and CLI engine, seamlessly complementing FrenzyKernel's kernel-level features:
-- **⚡ CPU Uncap & Governor Optimization**: Sets `up_rate_limit_us = 0` (zero latency frequency ramp-up), `sched_util_clamp_min_default = 50`, and overrides aggressive thermal throttling policies to sustain continuous multi-core execution during heavy server workloads.
-- **🛑 Hardware Touchscreen Ghost Shield (`touch_blocker`)**: Intercepts `/dev/input/event*` hardware touch events via Linux kernel `EVIOCGRAB`, preventing broken digitizers or ghost touches from interfering with server operations.
-- **🧊 3-Tier Headless Server Architecture**:
-  - **Normal Mode**: Standard phone mode with all services active.
-  - **Tier 1 (Smart Debloat)**: Freezes 28 bloatware packages via `pm disable-user` and halts Camera HAL.
-  - **Tier 2 (Extreme Headless)**: Freezes Launcher & SystemUI via `SIGSTOP`, locks physical LCD backlight to zero, and sweeps cached apps—dedicating maximum RAM to Linux servers and databases.
-- **🛡️ Anti-OOM Daemon Shield**: Automatically pins `oom_score_adj = -900` for server processes (`sshd`, `nginx`, `node`, `python`, `dockerd`, `containerd`, `mysqld`, `redis-server`, `tailscale`) so Android's LowMemoryKiller (LMK) never terminates your servers.
-- **🌐 Remote WebUI Dashboard on Port 8888**: Complete browser-based dashboard for live RAM/thermal monitoring, quick RAM trim, and tier switching.
-- **⚠️ Platform Compatibility**: Engineered exclusively for **KernelSU** and **KernelSU-Next**.
+### 1. 🎭 Build-Time Security & Dynamic `/proc/config.gz` Cloaking
+- **Kbuild Dynamic Config Stripping (`kernel/Makefile`)**:
+  - Implements an automated cloaking mechanism during `config_data.gz` compilation via `CONFIG_FAKE_DISABLE`.
+  - Targets sensitive kernel options (`CONFIG_KSU`, `CONFIG_KSU_SUSFS`, `CONFIG_SUSFS`, `CONFIG_BBG`).
+  - Automatically redirects Kbuild to a sanitized `.config.patched` so that apps, root detectors, or security scanners reading `/proc/config.gz` at runtime receive:
+    ```text
+    # CONFIG_KSU is not set
+    ```
+  - Conceals custom root infrastructure directly at the kernel configuration level.
+
+### 2. ⚡ In-Kernel Hardware Drivers & Native Primitives
+- **Hardware NTSync Synchronization Driver (`/dev/ntsync`)**:
+  - Integrated directly into `drivers/misc/ntsync.c` and `include/uapi/linux/ntsync.h` (`CONFIG_NTSYNC=y`).
+  - Implements Windows NT synchronization primitives (mutexes, semaphores, events) directly in kernel space, eliminating heavy context-switch overhead for Wine, Proton, x86/ARM translation layers, and multi-threaded database engines.
+- **Native KernelSU-Next v3.3.0 Integration**:
+  - `CONFIG_KSU=y` embedded directly inside `drivers/kernelsu` at the driver source level, eliminating reliance on initramfs ramdisk hooks.
+- **Enterprise IPC & Message Queuing**:
+  - `CONFIG_SYSVIPC=y` and `CONFIG_POSIX_MQUEUE=y` enabled for high-throughput inter-process communication among containerized microservices.
+- **Kernel CIFS/SMB Network Client**:
+  - `CONFIG_CIFS=y`, `CONFIG_CIFS_XATTR=y`, and `CONFIG_CIFS_POSIX=y` for mounting remote NAS / Samba storage directly at the kernel VFS layer.
+
+### 3. 🧊 Containerization & Virtualization Subsystem (LXC / Docker / Droidspaces Host)
+- **Full Linux Namespaces Enabled**:
+  - `CONFIG_NAMESPACES=y`, `CONFIG_UTS_NS=y`, `CONFIG_IPC_NS=y`, `CONFIG_USER_NS=y`, and `CONFIG_NET_NS=y`.
+  - **PID Namespaces (`CONFIG_PID_NS=y`)**: Explicitly unlocked (disabled by default in stock Android GKI), enabling isolated process trees required by container init daemons (`systemd`, `openrc`, `init`).
+- **Complete Control Groups (CGroups v1 & v2)**:
+  - `CONFIG_CGROUPS=y`, `CONFIG_MEMCG=y`, `CONFIG_CPUSETS=y`, `CONFIG_BLK_CGROUP=y`, `CONFIG_CGROUP_SCHED=y`, `CONFIG_CGROUP_FREEZER=y`, and `CONFIG_CGROUP_BPF=y`.
+  - **Device Access Controller (`CONFIG_CGROUP_DEVICE=y`)**: Built-in device whitelisting support, allowing containers secure, controlled access to `/dev/` nodes.
+- **OverlayFS Custom Patches**: 1orz GKI custom patches integrated into `fs/overlayfs/util.c`, `include/linux/sched.h`, and `kernel/cgroup/cgroup.c` for full Docker/Podman overlay storage layer compatibility.
+- **Native Devtmpfs & Syscall Handles**: `CONFIG_DEVTMPFS=y` and `CONFIG_FHANDLE=y` for mounting complete devfs trees inside Droidspaces (Debian 13 Trixie / Ubuntu rootfs).
+- **POSIX ACL File Security**: `CONFIG_TMPFS_POSIX_ACL=y` and `CONFIG_NTFS3_FS_POSIX_ACL=y` enabling granular Linux permission bits for hosted server services.
+
+### 4. 🌐 Next-Gen Kernel Networking, Congestion Control & Security
+- **Backported Google TCP BBRv3**:
+  - Full backport of Google's **BBRv3 (Bottleneck Bandwidth and RTT v3)** with Path Latency Based (PLB) congestion control (`net/ipv4/tcp_bbr3.c`, `net/ipv4/tcp_plb.c`).
+  - Android KABI-compliant implementation.
+  - Set as the kernel default congestion control: `CONFIG_TCP_CONG_BBR3=y`, `CONFIG_DEFAULT_BBR3=y` (`CONFIG_DEFAULT_TCP_CONG="bbr3"`).
+- **CAKE Packet Scheduler (`sch_cake`)**:
+  - `CONFIG_NET_SCH_CAKE=y` compiled directly into the kernel traffic control subsystem (`net/sched/sch_cake.c`) to eliminate bufferbloat and optimize bandwidth fairness.
+- **Server Firewall & Packet Filtering Acceleration**:
+  - **IPSet Framework (`CONFIG_IP_SET=y`)**: Full kernel hash support (`CONFIG_IP_SET_HASH_IP=y`, `CONFIG_IP_SET_HASH_NET=y`, `CONFIG_IP_SET_HASH_IPPORT=y`) for high-speed packet filtering matching thousands of IPs in $O(1)$ time.
+  - **Rate-Limiting & Brute-Force Defense (`CONFIG_NETFILTER_XT_MATCH_RECENT=y`)**: In-kernel connection tracking required by `fail2ban` and `ufw` to block SSH/HTTP brute-force attacks at wire speed.
+  - **IPv6 NAT Masquerade**: `CONFIG_IP6_NF_NAT=y` and `CONFIG_IP6_NF_TARGET_MASQUERADE=y` for container bridge routing over IPv6.
+
+### 5. 🎛️ Scheduler Architecture & Compiler Tuning
+- **PELT 12ms Half-Life Tracking**:
+  - `CONFIG_PELT_UTIL_HALFLIFE_12=y` replaces the standard 32ms PELT window, speeding up task load tracking for instant CPU frequency scaling during bursty server request spikes.
+- **Reflex CPU Governor**:
+  - `CONFIG_CPU_FREQ_GOV_REFLEX=y` embedded as a built-in cpufreq governor option.
+- **Clang ThinLTO (Link-Time Optimization)**:
+  - `CONFIG_LTO_CLANG_THIN=y` provides whole-program interprocedural optimizations with manageable build-time memory footprints and robust KMI compatibility.
+- **Aggressive Performance Optimization**:
+  - `CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y` (-O2 compiler flags) with disabled power-efficient workqueues (`# CONFIG_WQ_POWER_EFFICIENT_DEFAULT is not set`) to prevent unsolicited thread sleeping under heavy multi-core load.
+
+---
+
+## 🎛️ Recommended Userspace Companion: FrenzyServerKSU
+
+While **FrenzyKernel** provides the kernel infrastructure (`/dev/ntsync`, namespaces, BBRv3, CGroups v2, config cloaking), orchestrating userspace runtime states is handled by its official companion KernelSU module:
+
+👉 **[FrenzyServerKSU](https://github.com/inimuqsith/FrenzyServerKSU)** — *Universal Headless Android Linux Server Suite & WebUI Dashboard (Exclusively for KernelSU / KernelSU-Next).*
+
+### Separation of Responsibilities
+| Domain | Layer | Handled By | Responsibilities |
+| :--- | :--- | :--- | :--- |
+| **Kernel Space** | VFS / Net / Drivers | **FrenzyKernel** | Namespaces, CGroups, NTSync driver, BBRv3, CAKE, IPSet, config cloaking, ThinLTO |
+| **Userspace** | Daemons / Scripts / Web | **FrenzyServerKSU** | Dynamic sysctl tuning, `touch_blocker` daemon, 3-tier headless debloat, WebUI dashboard |
 
 ---
 
@@ -103,12 +154,12 @@ The compiled kernel image will be generated at `out/arch/arm64/boot/Image.gz`.
 ## 📦 Installation
 
 1. **Kernel Image**:
-   - Pack into an AnyKernel3 zip or flash directly via Fastboot / TWRP:
+   - Pack `Image.gz` into an AnyKernel3 zip or flash directly via Fastboot / TWRP:
      ```bash
      fastboot flash boot boot.img
      ```
-2. **Companion Module (Optional)**:
-   - Install **[FrenzyServerKSU](https://github.com/inimuqsith/FrenzyServerKSU)** via KernelSU or KernelSU-Next for remote WebUI dashboard and 24/7 headless server management.
+2. **Userspace Companion Module (Optional)**:
+   - Install **[FrenzyServerKSU](https://github.com/inimuqsith/FrenzyServerKSU)** via KernelSU or KernelSU-Next for browser dashboard management and runtime headless orchestration.
 
 ---
 
