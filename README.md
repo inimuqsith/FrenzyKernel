@@ -51,60 +51,17 @@ Unlike conventional smartphone kernels that prioritize aggressive thermal thrott
 
 ---
 
-## 🎛️ FrenzyServer Engine & WebUI
+## 🎛️ Recommended Companion: FrenzyServer
 
-Included within the repository is **`frenzy_server/`**, a native KernelSU / Magisk module and daemon suite that exposes real-time system metrics, container controls, and headless switching via a **Remote WebUI on Port 8888** and an integrated CLI:
+For extreme 24/7 headless server operation, RAM debloating, hardware shielding, and remote WebUI monitoring (Port 8888), pair FrenzyKernel with the official companion root module:
 
-```text
-======================================================
-    ⚡ FRENZYSERVER ALL-IN-ONE LINUX SERVER ENGINE   
-        Android GKI 5.10 | Droidspaces Host          
-======================================================
-[1] RAM & Memory Health:
-  • Total RAM     : 7700 MB (~8 GB)
-  • Free Physical : 4898 MB
-  • Available RAM : 5754 MB (Dedicated to Linux/Server)
-  • Battery Temp  : 31°C (Smart Guard Limit: 47°C)
+👉 **[FrenzyServerKSU](https://github.com/inimuqsith/FrenzyServerKSU)** — *Universal All-in-One Headless Android Server Suite, Remote WebUI & System Optimizer.*
 
-[2] Server Mode (Current):
-  • Active Mode   : TIER 2 (Extreme Headless Server)
-  • Screen State  : Hardware Screen Locked OFF (Controlled via PC)
-  • PC LAN Access : http://192.168.0.109:8888
-  • Tailscale Web : http://100.72.229.46:8888
-======================================================
-```
-
-### Operational Tiers
-
-| Tier | Name | Target State | Available RAM | Primary Use Case |
-| :--- | :--- | :--- | :--- | :--- |
-| **Normal** | Consumer Phone Mode | All Android services, Launcher, SystemUI, and camera active | ~5.3 GB | Daily driver smartphone use |
-| **Tier 1** | Smart Debloat Mode | 28 bloatware packages frozen, Camera HAL halted, full UI intact | ~5.4 GB | Extended gaming, daily multi-tasking |
-| **Tier 2** | Extreme Headless Mode | Launcher & SystemUI frozen (`SIGSTOP`), screen locked off, 100% CPU dedicated to server | **>5.7 GB** | 24/7 Server, Minecraft, LXC, Node.js |
-
----
-
-## 💻 CLI Commands
-
-```bash
-# Display live RAM, battery thermals, container & network status
-frenzy-server status
-
-# Switch operational tier
-frenzy-server mode [normal|tier1|tier2]
-
-# Quick RAM trim (drops caches, compacts memory & clears cached apps)
-frenzy-server trim
-
-# Tailscale VPN Mesh controls
-frenzy-server vpn [connect|disconnect|open|status]
-
-# Droidspaces Linux Container controls
-frenzy-server droidspaces [restart|open|status]
-
-# Dump metrics in JSON format (used by REST API & WebUI)
-frenzy-server json
-```
+### Companion Highlights:
+- **Remote WebUI on Port 8888**: Real-time RAM & CPU visualization, thermals, and one-click RAM trim from any browser.
+- **Operational Tiers**: Instantly switch between Normal Phone Mode, Tier 1 (Smart Debloat), and Tier 2 (Extreme Headless with LCD screen locked off).
+- **Hardware Shields**: Touchscreen ghost-touch blocker (`touch_blocker`) and biometric crash isolator.
+- **Daemon Protection**: Anti-OOM protection for background server daemons (`sshd`, `nginx`, `node`, `python`, `dockerd`, etc.).
 
 ---
 
@@ -145,10 +102,8 @@ The compiled kernel image will be generated at `out/arch/arm64/boot/Image.gz`.
      ```bash
      fastboot flash boot boot.img
      ```
-2. **FrenzyServer Module**:
-   - Flash `frenzy_server.zip` in **KernelSU** or **Magisk** Manager.
-   - Reboot device.
-   - Access the WebUI from your PC browser: `http://<device-ip>:8888`.
+2. **Companion Module (Optional)**:
+   - Install **[FrenzyServerKSU](https://github.com/inimuqsith/FrenzyServerKSU)** via KernelSU, Magisk, or APatch for remote WebUI dashboard and 24/7 headless server management.
 
 ---
 
