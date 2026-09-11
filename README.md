@@ -46,7 +46,6 @@ Unlike conventional smartphone kernels that prioritize aggressive thermal thrott
 
 ### 3. Hardware Shielding & Resilience
 - **Touchscreen Ghost-Touch Shield**: Dedicated hardware-level `EVIOCGRAB` input interceptor (`touch_blocker`) isolating faulty digitizers and eliminating ghost touch inputs.
-- **Broken Fingerprint HAL Isolator**: Suppresses hardware sensor failure loops (`fingerprint@2.1`), unloads faulty driver modules (`tran_fp`), and auto-purges tombstone crash dump accumulations.
 - **Hardware Display Backlight Lock**: In headless server mode (Tier 2), the physical LCD backlight is locked via kernel sysfs (`chmod 000`) to absolute zero emission, preventing heat, power drain, and display burn-in during 24/7 continuous operation.
 
 ---
@@ -61,7 +60,6 @@ For maximum performance, hardware protection, and 24/7 headless server orchestra
 FrenzyServer integrates multiple specialized KernelSU module forks into a unified daemon and CLI engine, seamlessly complementing FrenzyKernel's kernel-level features:
 - **⚡ CPU Uncap & Governor Optimization**: Sets `up_rate_limit_us = 0` (zero latency frequency ramp-up), `sched_util_clamp_min_default = 50`, and overrides aggressive thermal throttling policies to sustain continuous multi-core execution during heavy server workloads.
 - **🛑 Hardware Touchscreen Ghost Shield (`touch_blocker`)**: Intercepts `/dev/input/event*` hardware touch events via Linux kernel `EVIOCGRAB`, preventing broken digitizers or ghost touches from interfering with server operations.
-- **💀 Fingerprint Crash Isolator**: Unloads buggy biometric drivers, masks Android VINTF/XML manifests, and halts battery-draining crash loops.
 - **🧊 3-Tier Headless Server Architecture**:
   - **Normal Mode**: Standard phone mode with all services active.
   - **Tier 1 (Smart Debloat)**: Freezes 28 bloatware packages via `pm disable-user` and halts Camera HAL.
@@ -110,7 +108,7 @@ The compiled kernel image will be generated at `out/arch/arm64/boot/Image.gz`.
      fastboot flash boot boot.img
      ```
 2. **Companion Module (Optional)**:
-   - Install **[FrenzyServerKSU](https://github.com/inimuqsith/FrenzyServerKSU)** via KernelSU, Magisk, or APatch for remote WebUI dashboard and 24/7 headless server management.
+   - Install **[FrenzyServerKSU](https://github.com/inimuqsith/FrenzyServerKSU)** via KernelSU or KernelSU-Next for remote WebUI dashboard and 24/7 headless server management.
 
 ---
 
