@@ -4,14 +4,13 @@
 
 ![Linux](https://img.shields.io/badge/Kernel-Linux%205.10%20GKI-blue?style=for-the-badge&logo=linux)
 ![Standard](https://img.shields.io/badge/Architecture-Android%20GKI%205.10-success?style=for-the-badge&logo=android)
-![Target](https://img.shields.io/badge/Tested%20On-Tecno%20Pova%204%20Pro-orange?style=for-the-badge&logo=android)
 ![Arch](https://img.shields.io/badge/Arch-AArch64%20(ARM64)-red?style=for-the-badge)
 ![Root](https://img.shields.io/badge/Built--in%20Root-KernelSU--Next%20v3.3.0-green?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-GPL--2.0-yellow?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Active%20%7C%20Production%20Ready-brightgreen?style=for-the-badge)
 
 **High-Performance Android Generic Kernel Image (GKI 5.10) for Linux Server Hosting & Containerization**  
-*A pure Android Generic Kernel Image (Linux 5.10 GKI) featuring Google BBRv3 backport, in-kernel NTSync driver, build-time /proc/config.gz cloaking, full LXC/Docker namespaces & CGroups, KernelSU-Next v3.3.0 integration, and Clang ThinLTO. Tested exclusively on Tecno Pova 4 Pro.*
+*A pure Android Generic Kernel Image (Linux 5.10 GKI) featuring Google BBRv3 backport, in-kernel NTSync driver, build-time /proc/config.gz cloaking, full LXC/Docker namespaces & CGroups, KernelSU-Next v3.3.0 integration, and Clang ThinLTO.*
 
 [Overview](#-overview) •
 [Core Kernel Architecture](#-core-kernel-architecture) •
@@ -29,9 +28,6 @@
 **FrenzyKernel** is an enterprise-grade Linux 5.10 kernel adhering strictly to the universal **Android Generic Kernel Image (GKI)** standard (`gki_defconfig`).
 
 Unlike conventional smartphone kernels optimized solely for conservative handheld use, FrenzyKernel transforms Android GKI devices into **high-performance Linux host nodes**. Built directly into the kernel source are the necessary drivers, subsystems, and kernel patches to run native Linux containers (LXC, Docker, Droidspaces), enterprise network stacks (Google BBRv3, CAKE), low-latency synchronization primitives (NTSync for Wine/Proton), and embedded root orchestration (KernelSU-Next).
-
-> [!NOTE]
-> **Validation Device**: While architecturally compatible with devices running the Android 12 GKI 5.10 common kernel, FrenzyKernel is developed, validated, and rigorously tested on the **Tecno Pova 4 Pro (`LG8n`)**.
 
 ---
 
@@ -174,7 +170,7 @@ The compiled kernel image will be generated at `out/arch/arm64/boot/Image.gz`.
 
 <div align="center">
 
-*Engineered with precision for the Android GKI 5.10 architecture. Tested on Tecno Pova 4 Pro.*  
+*Engineered with precision for the universal Android GKI 5.10 architecture.*  
 Licensed under the **GNU General Public License v2.0**.
 
 </div>
