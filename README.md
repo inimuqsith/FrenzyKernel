@@ -3,14 +3,14 @@
 <div align="center">
 
 ![Linux](https://img.shields.io/badge/Kernel-Linux%205.10%20GKI-blue?style=for-the-badge&logo=linux)
-![SoC](https://img.shields.io/badge/SoC-MediaTek%20Helio%20G99%20(MT6789)-orange?style=for-the-badge&logo=mediatek)
-![Target](https://img.shields.io/badge/Device-Tecno%20Pova%204%20Pro%20(LG8n)-success?style=for-the-badge&logo=android)
+![Standard](https://img.shields.io/badge/Architecture-Android%20GKI%205.10-success?style=for-the-badge&logo=android)
+![Target](https://img.shields.io/badge/Tested%20On-Tecno%20Pova%204%20Pro-orange?style=for-the-badge&logo=android)
 ![Arch](https://img.shields.io/badge/Arch-AArch64%20(ARM64)-red?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-GPL--2.0-yellow?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Active%20%7C%20Production%20Ready-brightgreen?style=for-the-badge)
 
-**High-Performance Linux 5.10 Kernel & All-in-One Headless Server Engine for MediaTek MT6789 / Helio G99**  
-*Engineered for 24/7 Linux Server Hosting (Droidspaces LXC), Gaming Emulation, Hardware Shielding, and Enterprise-Grade Stability.*
+**High-Performance Android Generic Kernel Image (GKI 5.10) & Headless Server Engine**  
+*A pure Android Generic Kernel Image (Linux 5.10 GKI) engineered for 24/7 Linux Server Hosting (Droidspaces LXC), Gaming Emulation, Hardware Shielding, and Enterprise-Grade Stability. Tested on Tecno Pova 4 Pro.*
 
 [Overview](#-overview) •
 [Core Pillars](#-core-pillars) •
@@ -25,9 +25,9 @@
 
 ## 📖 Overview
 
-**FrenzyKernel** is a heavily enhanced, performance-optimized Linux 5.10 kernel branch specifically engineered for the **MediaTek Helio G99 (MT6789)** platform, validated and refined on the **Tecno Pova 4 Pro (`LG8n`)**. 
+**FrenzyKernel** is a heavily enhanced, performance-optimized Linux 5.10 kernel strictly adhering to the **Android Generic Kernel Image (GKI)** standard. Because it is a true universal **GKI 5.10** kernel, it is architecture-compliant with any Android device running the common GKI 5.10 kernel. Development, validation, and real-world testing have been conducted on the **Tecno Pova 4 Pro (`LG8n`)**.
 
-Unlike conventional smartphone kernels that prioritize aggressive thermal throttling over continuous throughput, FrenzyKernel transforms the Helio G99 into an enterprise-grade **24/7 Linux Micro-Server & Appliance**, capable of hosting full Linux distributions (Debian 13 / Ubuntu via Droidspaces LXC), Minecraft servers, Node.js applications, databases, and VPN meshes—while remaining a smooth, ultra-responsive daily driver phone when needed.
+Unlike conventional smartphone kernels that prioritize aggressive thermal throttling over continuous throughput, FrenzyKernel transforms Android GKI devices into enterprise-grade **24/7 Linux Micro-Servers & Appliances**, capable of hosting full Linux distributions (Debian 13 / Ubuntu via Droidspaces LXC), Minecraft servers, Node.js applications, databases, and VPN meshes—while remaining a smooth, ultra-responsive daily driver phone when needed.
 
 ---
 
@@ -35,8 +35,8 @@ Unlike conventional smartphone kernels that prioritize aggressive thermal thrott
 
 ### 1. Scheduler & Performance Optimization
 - **CFS Granularity Tuning**: Fine-tuned `sched_latency_ns` (4ms) and `sched_min_granularity_ns` (750µs) for minimal frame drop and ultra-fast task switching.
-- **UCLAMP Instant Ramp-Up**: Configured `sched_util_clamp_min_default = 50` with `up_rate_limit_us = 0` across Little (A55) and Big (A76) clusters, guaranteeing instantaneous frequency ramp-up under burst workloads.
-- **MediaTek PPM Uncap**: Enforces persistent dual Cortex-A76 performance at 2.2 GHz without premature thermal governor throttling.
+- **UCLAMP Instant Ramp-Up**: Configured `sched_util_clamp_min_default = 50` with `up_rate_limit_us = 0` across clusters, guaranteeing instantaneous frequency ramp-up under burst workloads.
+- **Sustained Throughput Scaling**: Guarantees sustained CPU performance under heavy multi-tasking without premature governor down-scaling.
 - **Advanced Networking**: Defaults to **TCP BBRv3** congestion control paired with **CAKE queue discipline** (`sch_cake`) and Fast Open (`tcp_fastopen = 3`) for minimal latency and zero bufferbloat.
 
 ### 2. Containerization & Virtualization Engine
@@ -58,7 +58,7 @@ Included within the repository is **`frenzy_server/`**, a native KernelSU / Magi
 ```text
 ======================================================
     ⚡ FRENZYSERVER ALL-IN-ONE LINUX SERVER ENGINE   
-       Helio G99 (MT6789) | Droidspaces Host          
+        Android GKI 5.10 | Droidspaces Host          
 ======================================================
 [1] RAM & Memory Health:
   • Total RAM     : 7700 MB (~8 GB)
@@ -128,7 +128,7 @@ export SUBARCH=arm64
 export PATH="/path/to/clang/bin:$PATH"
 
 # Configure defconfig
-make O=out ARCH=arm64 CC=clang LD=ld.lld mt6789_defconfig
+make O=out ARCH=arm64 CC=clang LD=ld.lld gki_defconfig
 
 # Compile kernel Image & DTB
 make O=out ARCH=arm64 CC=clang LD=ld.lld -j$(nproc)
@@ -157,13 +157,13 @@ The compiled kernel image will be generated at `out/arch/arm64/boot/Image.gz`.
 - **Lead Developer**: Abdul Muqsith ([@inimuqsith](https://github.com/inimuqsith))
 - **Base Tree & Upstream**: [MillenniumOSS](https://github.com/MillenniumOSS) & Google Android Open Source Project (AOSP)
 - **Linux Foundation**: The Linux Kernel Archives
-- **Community**: KernelSU, Droidspaces, and Transsion MT6789 developer community
+- **Community**: KernelSU, Droidspaces, and Android GKI developer community
 
 ---
 
 <div align="center">
 
-*Engineered with precision for the MediaTek Helio G99 architecture.*  
+*Engineered with precision for the Android GKI 5.10 architecture. Tested on Tecno Pova 4 Pro.*  
 Licensed under the **GNU General Public License v2.0**.
 
 </div>

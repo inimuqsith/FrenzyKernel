@@ -10,7 +10,7 @@ assignees: inimuqsith
 A clear and concise description of what the bug is.
 
 **Device Information**
-- Device: Tecno Pova 4 Pro / Other MT6789
+- Device: Tecno Pova 4 Pro (or your GKI 5.10 device)
 - ROM / OS Version: e.g. YAAP Android 14 / Android 12
 - FrenzyKernel Branch / Version: e.g. frenzy-v4-fusion
 - FrenzyServer Mode: Normal / Tier 1 / Tier 2

@@ -2,7 +2,7 @@ SKIPUNZIP=0
 
 ui_print "*****************************************************"
 ui_print "       ⚡ FrenzyServer All-in-One Engine ⚡         "
-ui_print "     Linux Server Fusion for Helio G99 (MT6789)      "
+ui_print "     Linux Server Fusion for Android GKI 5.10        "
 ui_print "       ROM: YAAP (AOSP) | Target: Droidspaces        "
 ui_print "*****************************************************"
 
@@ -33,7 +33,7 @@ chmod 755 /data/adb/ksu/bin/frenzy-server 2>/dev/null
 ln -sf /data/adb/ksu/bin/frenzy-server /data/adb/ksu/bin/frenzy-debloat 2>/dev/null
 
 ui_print " "
-ui_print "  [✓] Pilar 1: G99 Server Engine (CFS 4ms, PPM 2.2GHz, NTSync 0666)"
+ui_print "  [✓] Pilar 1: Android GKI Server Engine (CFS 4ms, UCLAMP, NTSync 0666)"
 ui_print "  [✓] Pilar 2: Touchscreen Shield (Anti-Ghost Touch ioctl)"
 ui_print "  [✓] Pilar 3: Fingerprint Killer (Crash Loops Neutralized)"
 ui_print "  [✓] Pilar 4: Headless Debloat (29 Bloat Apps & Camera HAL Frozen)"

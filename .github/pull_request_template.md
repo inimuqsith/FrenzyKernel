@@ -8,6 +8,6 @@ Briefly describe the changes introduced by this pull request.
 - [ ] Documentation update
 
 ## Testing Done
-- [ ] Tested on device: Tecno Pova 4 Pro (MT6789)
+- [ ] Tested on device: Tecno Pova 4 Pro
 - [ ] Verified with `frenzy-server status`
 - [ ] No regression in Normal / Tier 1 / Tier 2 modes
