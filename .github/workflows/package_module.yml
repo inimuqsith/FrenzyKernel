@@ -1,0 +1,30 @@
+name: Package FrenzyServer Module
+
+on:
+  push:
+    branches:
+      - main
+      - frenzy-v4-fusion
+    paths:
+      - 'frenzy_server/**'
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Create FrenzyServer Flashable Zip
+        run: |
+          cd frenzy_server
+          zip -r9 ../frenzy_server.zip *
+          cd ..
+          ls -lh frenzy_server.zip
+
+      - name: Upload Module Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FrenzyServer-Module
+          path: frenzy_server.zip

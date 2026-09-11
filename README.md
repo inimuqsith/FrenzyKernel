@@ -1,150 +1,169 @@
-# How do I submit patches to Android Common Kernels
+# ⚡ FrenzyKernel
 
-1. BEST: Make all of your changes to upstream Linux. If appropriate, backport to the stable releases.
-   These patches will be merged automatically in the corresponding common kernels. If the patch is already
-   in upstream Linux, post a backport of the patch that conforms to the patch requirements below.
-   - Do not send patches upstream that contain only symbol exports. To be considered for upstream Linux,
-additions of `EXPORT_SYMBOL_GPL()` require an in-tree modular driver that uses the symbol -- so include
-the new driver or changes to an existing driver in the same patchset as the export.
-   - When sending patches upstream, the commit message must contain a clear case for why the patch
-is needed and beneficial to the community. Enabling out-of-tree drivers or functionality is not
-not a persuasive case.
+<div align="center">
 
-2. LESS GOOD: Develop your patches out-of-tree (from an upstream Linux point-of-view). Unless these are
-   fixing an Android-specific bug, these are very unlikely to be accepted unless they have been
-   coordinated with kernel-team@android.com. If you want to proceed, post a patch that conforms to the
-   patch requirements below.
+![Linux](https://img.shields.io/badge/Kernel-Linux%205.10%20GKI-blue?style=for-the-badge&logo=linux)
+![SoC](https://img.shields.io/badge/SoC-MediaTek%20Helio%20G99%20(MT6789)-orange?style=for-the-badge&logo=mediatek)
+![Target](https://img.shields.io/badge/Device-Tecno%20Pova%204%20Pro%20(LG8n)-success?style=for-the-badge&logo=android)
+![Arch](https://img.shields.io/badge/Arch-AArch64%20(ARM64)-red?style=for-the-badge)
+![License](https://img.shields.io/badge/License-GPL--2.0-yellow?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Active%20%7C%20Production%20Ready-brightgreen?style=for-the-badge)
 
-# Common Kernel patch requirements
+**High-Performance Linux 5.10 Kernel & All-in-One Headless Server Engine for MediaTek MT6789 / Helio G99**  
+*Engineered for 24/7 Linux Server Hosting (Droidspaces LXC), Gaming Emulation, Hardware Shielding, and Enterprise-Grade Stability.*
 
-- All patches must conform to the Linux kernel coding standards and pass `script/checkpatch.pl`
-- Patches shall not break gki_defconfig or allmodconfig builds for arm, arm64, x86, x86_64 architectures
-(see  https://source.android.com/setup/build/building-kernels)
-- If the patch is not merged from an upstream branch, the subject must be tagged with the type of patch:
-`UPSTREAM:`, `BACKPORT:`, `FROMGIT:`, `FROMLIST:`, or `ANDROID:`.
-- All patches must have a `Change-Id:` tag (see https://gerrit-review.googlesource.com/Documentation/user-changeid.html)
-- If an Android bug has been assigned, there must be a `Bug:` tag.
-- All patches must have a `Signed-off-by:` tag by the author and the submitter
+[Overview](#-overview) •
+[Core Pillars](#-core-pillars) •
+[FrenzyServer WebUI & Engine](#-frenzyserver-engine--webui) •
+[Building](#-building-the-kernel) •
+[Installation](#-installation) •
+[Credits](#-credits--acknowledgments)
 
-Additional requirements are listed below based on patch type
+---
 
-## Requirements for backports from mainline Linux: `UPSTREAM:`, `BACKPORT:`
+</div>
 
-- If the patch is a cherry-pick from Linux mainline with no changes at all
-    - tag the patch subject with `UPSTREAM:`.
-    - add upstream commit information with a `(cherry picked from commit ...)` line
-    - Example:
-        - if the upstream commit message is
-```
-        important patch from upstream
+## 📖 Overview
 
-        This is the detailed description of the important patch
+**FrenzyKernel** is a heavily enhanced, performance-optimized Linux 5.10 kernel branch specifically engineered for the **MediaTek Helio G99 (MT6789)** platform, validated and refined on the **Tecno Pova 4 Pro (`LG8n`)**. 
 
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
-```
->- then Joe Smith would upload the patch for the common kernel as
-```
-        UPSTREAM: important patch from upstream
+Unlike conventional smartphone kernels that prioritize aggressive thermal throttling over continuous throughput, FrenzyKernel transforms the Helio G99 into an enterprise-grade **24/7 Linux Micro-Server & Appliance**, capable of hosting full Linux distributions (Debian 13 / Ubuntu via Droidspaces LXC), Minecraft servers, Node.js applications, databases, and VPN meshes—while remaining a smooth, ultra-responsive daily driver phone when needed.
 
-        This is the detailed description of the important patch
+---
 
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
+## 🚀 Core Pillars
 
-        Bug: 135791357
-        Change-Id: I4caaaa566ea080fa148c5e768bb1a0b6f7201c01
-        (cherry picked from commit c31e73121f4c1ec41143423ac6ce3ce6dafdcec1)
-        Signed-off-by: Joe Smith <joe.smith@foo.org>
-```
+### 1. Scheduler & Performance Optimization
+- **CFS Granularity Tuning**: Fine-tuned `sched_latency_ns` (4ms) and `sched_min_granularity_ns` (750µs) for minimal frame drop and ultra-fast task switching.
+- **UCLAMP Instant Ramp-Up**: Configured `sched_util_clamp_min_default = 50` with `up_rate_limit_us = 0` across Little (A55) and Big (A76) clusters, guaranteeing instantaneous frequency ramp-up under burst workloads.
+- **MediaTek PPM Uncap**: Enforces persistent dual Cortex-A76 performance at 2.2 GHz without premature thermal governor throttling.
+- **Advanced Networking**: Defaults to **TCP BBRv3** congestion control paired with **CAKE queue discipline** (`sch_cake`) and Fast Open (`tcp_fastopen = 3`) for minimal latency and zero bufferbloat.
 
-- If the patch requires any changes from the upstream version, tag the patch with `BACKPORT:`
-instead of `UPSTREAM:`.
-    - use the same tags as `UPSTREAM:`
-    - add comments about the changes under the `(cherry picked from commit ...)` line
-    - Example:
-```
-        BACKPORT: important patch from upstream
+### 2. Containerization & Virtualization Engine
+- **Full LXC / Namespaces Support**: Completely enabled CGroups v1 & v2 hierarchies, PID/mount/network namespaces, and user namespace isolation.
+- **Droidspaces Container Host**: Out-of-the-box support for hosting Debian 13 (Trixie), Ubuntu, and Arch Linux rootfs directly on device.
+- **NTSync Synchronization Driver**: Built-in `/dev/ntsync` kernel synchronization primitives, providing high-performance NT fast synchronization for Wine, Proton, Windows emulation, and database engines.
 
-        This is the detailed description of the important patch
+### 3. Hardware Shielding & Resilience
+- **Touchscreen Ghost-Touch Shield**: Dedicated hardware-level `EVIOCGRAB` input interceptor (`touch_blocker`) isolating faulty digitizers and eliminating ghost touch inputs.
+- **Broken Fingerprint HAL Isolator**: Suppresses hardware sensor failure loops (`fingerprint@2.1`), unloads faulty driver modules (`tran_fp`), and auto-purges tombstone crash dump accumulations.
+- **Hardware Display Backlight Lock**: In headless server mode (Tier 2), the physical LCD backlight is locked via kernel sysfs (`chmod 000`) to absolute zero emission, preventing heat, power drain, and display burn-in during 24/7 continuous operation.
 
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
+---
 
-        Bug: 135791357
-        Change-Id: I4caaaa566ea080fa148c5e768bb1a0b6f7201c01
-        (cherry picked from commit c31e73121f4c1ec41143423ac6ce3ce6dafdcec1)
-        [joe: Resolved minor conflict in drivers/foo/bar.c ]
-        Signed-off-by: Joe Smith <joe.smith@foo.org>
-```
+## 🎛️ FrenzyServer Engine & WebUI
 
-## Requirements for other backports: `FROMGIT:`, `FROMLIST:`,
+Included within the repository is **`frenzy_server/`**, a native KernelSU / Magisk module and daemon suite that exposes real-time system metrics, container controls, and headless switching via a **Remote WebUI on Port 8888** and an integrated CLI:
 
-- If the patch has been merged into an upstream maintainer tree, but has not yet
-been merged into Linux mainline
-    - tag the patch subject with `FROMGIT:`
-    - add info on where the patch came from as `(cherry picked from commit <sha1> <repo> <branch>)`. This
-must be a stable maintainer branch (not rebased, so don't use `linux-next` for example).
-    - if changes were required, use `BACKPORT: FROMGIT:`
-    - Example:
-        - if the commit message in the maintainer tree is
-```
-        important patch from upstream
+```text
+======================================================
+    ⚡ FRENZYSERVER ALL-IN-ONE LINUX SERVER ENGINE   
+       Helio G99 (MT6789) | Droidspaces Host          
+======================================================
+[1] RAM & Memory Health:
+  • Total RAM     : 7700 MB (~8 GB)
+  • Free Physical : 4898 MB
+  • Available RAM : 5754 MB (Dedicated to Linux/Server)
+  • Battery Temp  : 31°C (Smart Guard Limit: 47°C)
 
-        This is the detailed description of the important patch
-
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
-```
->- then Joe Smith would upload the patch for the common kernel as
-```
-        FROMGIT: important patch from upstream
-
-        This is the detailed description of the important patch
-
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
-
-        Bug: 135791357
-        (cherry picked from commit 878a2fd9de10b03d11d2f622250285c7e63deace
-         https://git.kernel.org/pub/scm/linux/kernel/git/foo/bar.git test-branch)
-        Change-Id: I4caaaa566ea080fa148c5e768bb1a0b6f7201c01
-        Signed-off-by: Joe Smith <joe.smith@foo.org>
+[2] Server Mode (Current):
+  • Active Mode   : TIER 2 (Extreme Headless Server)
+  • Screen State  : Hardware Screen Locked OFF (Controlled via PC)
+  • PC LAN Access : http://192.168.0.109:8888
+  • Tailscale Web : http://100.72.229.46:8888
+======================================================
 ```
 
+### Operational Tiers
 
-- If the patch has been submitted to LKML, but not accepted into any maintainer tree
-    - tag the patch subject with `FROMLIST:`
-    - add a `Link:` tag with a link to the submittal on lore.kernel.org
-    - add a `Bug:` tag with the Android bug (required for patches not accepted into
-a maintainer tree)
-    - if changes were required, use `BACKPORT: FROMLIST:`
-    - Example:
-```
-        FROMLIST: important patch from upstream
+| Tier | Name | Target State | Available RAM | Primary Use Case |
+| :--- | :--- | :--- | :--- | :--- |
+| **Normal** | Consumer Phone Mode | All Android services, Launcher, SystemUI, and camera active | ~5.3 GB | Daily driver smartphone use |
+| **Tier 1** | Smart Debloat Mode | 28 bloatware packages frozen, Camera HAL halted, full UI intact | ~5.4 GB | Extended gaming, daily multi-tasking |
+| **Tier 2** | Extreme Headless Mode | Launcher & SystemUI frozen (`SIGSTOP`), screen locked off, 100% CPU dedicated to server | **>5.7 GB** | 24/7 Server, Minecraft, LXC, Node.js |
 
-        This is the detailed description of the important patch
+---
 
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
+## 💻 CLI Commands
 
-        Bug: 135791357
-        Link: https://lore.kernel.org/lkml/20190619171517.GA17557@someone.com/
-        Change-Id: I4caaaa566ea080fa148c5e768bb1a0b6f7201c01
-        Signed-off-by: Joe Smith <joe.smith@foo.org>
-```
+```bash
+# Display live RAM, battery thermals, container & network status
+frenzy-server status
 
-## Requirements for Android-specific patches: `ANDROID:`
+# Switch operational tier
+frenzy-server mode [normal|tier1|tier2]
 
-- If the patch is fixing a bug to Android-specific code
-    - tag the patch subject with `ANDROID:`
-    - add a `Fixes:` tag that cites the patch with the bug
-    - Example:
-```
-        ANDROID: fix android-specific bug in foobar.c
+# Quick RAM trim (drops caches, compacts memory & clears cached apps)
+frenzy-server trim
 
-        This is the detailed description of the important fix
+# Tailscale VPN Mesh controls
+frenzy-server vpn [connect|disconnect|open|status]
 
-        Fixes: 1234abcd2468 ("foobar: add cool feature")
-        Change-Id: I4caaaa566ea080fa148c5e768bb1a0b6f7201c01
-        Signed-off-by: Joe Smith <joe.smith@foo.org>
+# Droidspaces Linux Container controls
+frenzy-server droidspaces [restart|open|status]
+
+# Dump metrics in JSON format (used by REST API & WebUI)
+frenzy-server json
 ```
 
-- If the patch is a new feature
-    - tag the patch subject with `ANDROID:`
-    - add a `Bug:` tag with the Android bug (required for android-specific features)
+---
 
+## 🔨 Building the Kernel
+
+### Prerequisites
+- Linux host (Debian / Ubuntu / Arch)
+- AArch64 Clang toolchain (LLVM 14+ or Android NDK Clang)
+- `bc`, `bison`, `flex`, `libssl-dev`, `make`, `python3`
+
+### Build Steps
+
+```bash
+# Clone the repository
+git clone https://github.com/inimuqsith/FrenzyKernel.git -b frenzy-v4-fusion
+cd FrenzyKernel
+
+# Export cross compiler environment
+export ARCH=arm64
+export SUBARCH=arm64
+export PATH="/path/to/clang/bin:$PATH"
+
+# Configure defconfig
+make O=out ARCH=arm64 CC=clang LD=ld.lld mt6789_defconfig
+
+# Compile kernel Image & DTB
+make O=out ARCH=arm64 CC=clang LD=ld.lld -j$(nproc)
+```
+
+The compiled kernel image will be generated at `out/arch/arm64/boot/Image.gz`.
+
+---
+
+## 📦 Installation
+
+1. **Kernel Image**:
+   - Pack into an AnyKernel3 zip or flash directly via Fastboot / TWRP:
+     ```bash
+     fastboot flash boot boot.img
+     ```
+2. **FrenzyServer Module**:
+   - Flash `frenzy_server.zip` in **KernelSU** or **Magisk** Manager.
+   - Reboot device.
+   - Access the WebUI from your PC browser: `http://<device-ip>:8888`.
+
+---
+
+## 👥 Credits & Acknowledgments
+
+- **Lead Developer**: Abdul Muqsith ([@inimuqsith](https://github.com/inimuqsith))
+- **Base Tree & Upstream**: [MillenniumOSS](https://github.com/MillenniumOSS) & Google Android Open Source Project (AOSP)
+- **Linux Foundation**: The Linux Kernel Archives
+- **Community**: KernelSU, Droidspaces, and Transsion MT6789 developer community
+
+---
+
+<div align="center">
+
+*Engineered with precision for the MediaTek Helio G99 architecture.*  
+Licensed under the **GNU General Public License v2.0**.
+
+</div>
