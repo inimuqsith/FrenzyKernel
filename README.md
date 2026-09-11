@@ -149,13 +149,49 @@ The compiled kernel image will be generated at `out/arch/arm64/boot/Image.gz`.
 
 ## 📦 Installation
 
-1. **Kernel Image**:
-   - Pack `Image.gz` into an AnyKernel3 zip or flash directly via Fastboot / TWRP:
-     ```bash
-     fastboot flash boot boot.img
-     ```
-2. **Userspace Companion Module (Optional)**:
-   - Install **[FrenzyServerKSU](https://github.com/inimuqsith/FrenzyServerKSU)** via KernelSU or KernelSU-Next for browser dashboard management and runtime headless orchestration.
+FrenzyKernel prebuilt packages are available on [GitHub Releases](https://github.com/inimuqsith/FrenzyKernel/releases). Two official installation methods are supported:
+
+### Method 1: Fastboot / Fastbootd (Flash Boot Image via PC)
+Best suited for users using Android SDK Platform Tools (`fastboot`):
+```bash
+# 1. Reboot device into Fastboot or Fastbootd mode
+adb reboot bootloader
+# or: adb reboot fastboot
+
+# 2. Flash boot image to the boot partition
+fastboot flash boot FrenzyKernel-v4.0-Fusion-boot.img
+
+# (Recommended for Virtual A/B devices) Flash both slots:
+fastboot flash boot_a FrenzyKernel-v4.0-Fusion-boot.img
+fastboot flash boot_b FrenzyKernel-v4.0-Fusion-boot.img
+
+# 3. Reboot into system
+fastboot reboot
+```
+
+### Method 2: Custom Recovery (OrangeFox, TWRP, PBRP)
+Best suited for flashing directly on-device without a PC:
+
+- **Option A — AnyKernel3 Flashable Zip (Highly Recommended)**:
+  1. Download `FrenzyKernel-v4.0-Fusion-AnyKernel3.zip` to internal storage, SD card, or USB-OTG.
+  2. Boot device into **OrangeFox Recovery** or **TWRP**.
+  3. Navigate to **Install** / **Files**.
+  4. Select `FrenzyKernel-v4.0-Fusion-AnyKernel3.zip`.
+  5. **Swipe to Flash**. AnyKernel3 will automatically detect your active slot (A/B), unpack your ramdisk, patch the kernel `Image.gz`, and flash the boot partition seamlessly.
+  6. Tap **Reboot System**.
+
+- **Option B — Direct Boot Image Flash via Recovery**:
+  1. Download `FrenzyKernel-v4.0-Fusion-boot.img`.
+  2. Boot into **OrangeFox Recovery** or **TWRP**.
+  3. Tap **Install** and switch to **Install Image** mode.
+  4. Select `FrenzyKernel-v4.0-Fusion-boot.img`.
+  5. Select target partition: **Boot** (or **Boot Image**).
+  6. **Swipe to Flash** and tap **Reboot System**.
+
+---
+
+### 🎛️ Userspace Companion Module (Optional)
+Install **[FrenzyServerKSU](https://github.com/inimuqsith/FrenzyServerKSU)** via KernelSU or KernelSU-Next for remote WebUI dashboard and 24/7 headless server orchestration.
 
 ---
 
