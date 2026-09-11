@@ -1,3 +1,0 @@
-service fsfingerprint-hal-2.0 /vendor/bin/hw/vendor.fptool.fingerprint@2.0-service
-    disabled
-    override
