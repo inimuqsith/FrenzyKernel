@@ -51,17 +51,24 @@ Unlike conventional smartphone kernels that prioritize aggressive thermal thrott
 
 ---
 
-## 🎛️ Recommended Companion: FrenzyServer
+## 🎛️ Recommended Companion: FrenzyServer (KernelSU)
 
-For extreme 24/7 headless server operation, RAM debloating, hardware shielding, and remote WebUI monitoring (Port 8888), pair FrenzyKernel with the official companion root module:
+For maximum performance, hardware protection, and 24/7 headless server orchestration, pair FrenzyKernel with its official companion root module:
 
-👉 **[FrenzyServerKSU](https://github.com/inimuqsith/FrenzyServerKSU)** — *Universal All-in-One Headless Android Server Suite, Remote WebUI & System Optimizer.*
+👉 **[FrenzyServerKSU](https://github.com/inimuqsith/FrenzyServerKSU)** — *All-in-One Headless Android Linux Server Engine, Remote WebUI & Hardware Optimizer (Exclusively for KernelSU).*
 
-### Companion Highlights:
-- **Remote WebUI on Port 8888**: Real-time RAM & CPU visualization, thermals, and one-click RAM trim from any browser.
-- **Operational Tiers**: Instantly switch between Normal Phone Mode, Tier 1 (Smart Debloat), and Tier 2 (Extreme Headless with LCD screen locked off).
-- **Hardware Shields**: Touchscreen ghost-touch blocker (`touch_blocker`) and biometric crash isolator.
-- **Daemon Protection**: Anti-OOM protection for background server daemons (`sshd`, `nginx`, `node`, `python`, `dockerd`, etc.).
+### Why Pair FrenzyKernel with FrenzyServer?
+FrenzyServer integrates multiple specialized KernelSU module forks into a unified daemon and CLI engine, seamlessly complementing FrenzyKernel's kernel-level features:
+- **⚡ CPU Uncap & Governor Optimization**: Sets `up_rate_limit_us = 0` (zero latency frequency ramp-up), `sched_util_clamp_min_default = 50`, and overrides aggressive thermal throttling policies to sustain continuous multi-core execution during heavy server workloads.
+- **🛑 Hardware Touchscreen Ghost Shield (`touch_blocker`)**: Intercepts `/dev/input/event*` hardware touch events via Linux kernel `EVIOCGRAB`, preventing broken digitizers or ghost touches from interfering with server operations.
+- **💀 Fingerprint Crash Isolator**: Unloads buggy biometric drivers, masks Android VINTF/XML manifests, and halts battery-draining crash loops.
+- **🧊 3-Tier Headless Server Architecture**:
+  - **Normal Mode**: Standard phone mode with all services active.
+  - **Tier 1 (Smart Debloat)**: Freezes 28 bloatware packages via `pm disable-user` and halts Camera HAL.
+  - **Tier 2 (Extreme Headless)**: Freezes Launcher & SystemUI via `SIGSTOP`, locks physical LCD backlight to zero, and sweeps cached apps—dedicating maximum RAM to Linux servers and databases.
+- **🛡️ Anti-OOM Daemon Shield**: Automatically pins `oom_score_adj = -900` for server processes (`sshd`, `nginx`, `node`, `python`, `dockerd`, `containerd`, `mysqld`, `redis-server`, `tailscale`) so Android's LowMemoryKiller (LMK) never terminates your servers.
+- **🌐 Remote WebUI Dashboard on Port 8888**: Complete browser-based dashboard for live RAM/thermal monitoring, quick RAM trim, and tier switching.
+- **⚠️ Platform Compatibility**: Engineered exclusively for **KernelSU** and **KernelSU-Next**.
 
 ---
 
